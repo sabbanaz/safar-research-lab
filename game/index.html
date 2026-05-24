@@ -184,6 +184,45 @@
   .gameover-card h2 { color: #ff5d8f; }
   .stats { margin: 12px 0 18px; color: #c9b9ff; font-size: 15px; line-height: 1.7; }
   .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    width: min(680px, 90vw);
+    margin: 14px 0 26px;
+  }
+  .char-card {
+    cursor: pointer;
+    background: rgba(0,0,0,0.35);
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    padding: 18px;
+    text-align: center;
+    transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+    color: #fff;
+  }
+  .char-card:hover {
+    transform: translateY(-3px);
+    background: rgba(255,212,90,0.08);
+  }
+  .char-card.sonic { border-color: rgba(76,201,240,0.6); }
+  .char-card.sonic:hover { border-color: rgba(76,201,240,1); }
+  .char-card.tails { border-color: rgba(255,180,60,0.6); }
+  .char-card.tails:hover { border-color: rgba(255,180,60,1); }
+  .char-card.knuckles { border-color: rgba(220,28,44,0.6); }
+  .char-card.knuckles:hover { border-color: rgba(220,28,44,1); }
+  .char-card .char-name {
+    font-size: 20px; font-weight: 900; margin: 8px 0 4px; letter-spacing: 2px;
+  }
+  .char-card .char-tagline {
+    font-size: 13px; color: #c9b9ff; line-height: 1.4;
+  }
+  .char-card canvas {
+    background: transparent;
+    border-radius: 10px;
+    box-shadow: none;
+    image-rendering: auto;
+  }
 </style>
 </head>
 <body>
@@ -201,6 +240,29 @@
         <span><kbd>SPACE</kbd> / <kbd>↑</kbd> jump</span>
         <span><kbd>ESC</kbd> pause</span>
       </div>
+    </div>
+
+    <!-- Character select -->
+    <div id="char-overlay" class="overlay hide">
+      <h1 class="logo" style="font-size: clamp(28px, 4vw, 56px);">CHOOSE YOUR HERO</h1>
+      <div class="char-grid">
+        <div class="char-card sonic" id="pick-sonic">
+          <canvas id="preview-sonic" width="100" height="120"></canvas>
+          <div class="char-name">SONIC</div>
+          <div class="char-tagline">Speed demon</div>
+        </div>
+        <div class="char-card tails" id="pick-tails">
+          <canvas id="preview-tails" width="100" height="120"></canvas>
+          <div class="char-name">TAILS</div>
+          <div class="char-tagline">Sky pilot</div>
+        </div>
+        <div class="char-card knuckles" id="pick-knuckles">
+          <canvas id="preview-knuckles" width="100" height="120"></canvas>
+          <div class="char-name">KNUCKLES</div>
+          <div class="char-tagline">Power puncher</div>
+        </div>
+      </div>
+      <button class="btn secondary" id="char-back-btn">← BACK</button>
     </div>
 
     <!-- Level select -->
@@ -275,11 +337,13 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 // ── State machine ─────────────────────────────────────────────
-const State = { TITLE: 0, SELECT: 1, PLAYING: 2, PAUSED: 3, COMPLETE: 4, GAMEOVER: 5 };
+const State = { TITLE: 0, SELECT: 1, PLAYING: 2, PAUSED: 3, COMPLETE: 4, GAMEOVER: 5, CHARSELECT: 6 };
 let state = State.TITLE;
+let selectedChar = "knuckles";
 
 const ui = {
   title: document.getElementById("title-overlay"),
+  charselect: document.getElementById("char-overlay"),
   select: document.getElementById("select-overlay"),
   hud: document.getElementById("hud"),
   pause: document.getElementById("pause-overlay"),
@@ -2390,8 +2454,8 @@ function tick(now) {
   } else if (state === State.PAUSED || state === State.COMPLETE || state === State.GAMEOVER) {
     // freeze frame
     render();
-  } else {
-    // Title / select — draw a quiet animated scene
+  } else if (state === State.TITLE || state === State.SELECT || state === State.CHARSELECT) {
+    // Title / select / char select — draw a quiet animated scene
     drawTitleBackdrop(dt);
   }
 
@@ -2467,12 +2531,31 @@ function startLevel(idx) {
 }
 
 document.getElementById("play-btn").addEventListener("click", () => {
+  state = State.CHARSELECT;
+  show("charselect");
+});
+document.getElementById("char-back-btn").addEventListener("click", () => {
+  state = State.TITLE;
+  show("title");
+});
+document.getElementById("pick-sonic").addEventListener("click", () => {
+  selectedChar = "sonic";
+  state = State.SELECT;
+  show("select");
+});
+document.getElementById("pick-tails").addEventListener("click", () => {
+  selectedChar = "tails";
+  state = State.SELECT;
+  show("select");
+});
+document.getElementById("pick-knuckles").addEventListener("click", () => {
+  selectedChar = "knuckles";
   state = State.SELECT;
   show("select");
 });
 document.getElementById("back-btn").addEventListener("click", () => {
-  state = State.TITLE;
-  show("title");
+  state = State.CHARSELECT;
+  show("charselect");
 });
 document.getElementById("resume-btn").addEventListener("click", () => {
   state = State.PLAYING;
