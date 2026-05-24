@@ -420,6 +420,7 @@ let goal = null;
 let timeAccum = 0;    // global time for animations
 let levelTime = 0;    // per-level elapsed
 let shake = 0;
+let cameraSnap = true;    // when true, camera teleports to player instantly
 
 // ── Helpers ───────────────────────────────────────────────────
 function loadLevel(idx) {
@@ -466,9 +467,7 @@ function loadLevel(idx) {
       }
     }
   }
-  // Snap camera to player start
-  camera.x = Math.max(0, player.x - VIEW_W / 3);
-  camera.y = 0;
+  cameraSnap = true;
   ui.hudLevel.textContent = "WORLD " + level.id + " · " + level.name;
   ui.hudCoins.textContent = "★ " + coins;
   document.getElementById("hud-next").textContent = "+1UP at " + (Math.floor(coins / 20) * 20 + 20);
@@ -832,9 +831,7 @@ function hurtPlayer(instantDeath = false) {
         player.fireballs = 0; player.fireCooldown = 0;
         document.getElementById("hud-fire").style.display = "none";
         player.invuln = 1.2;
-        // Snap camera to respawn point
-        camera.x = Math.max(0, player.x - VIEW_W / 2);
-        camera.y = 0;
+        cameraSnap = true;
         return;
       }
     }
@@ -1034,8 +1031,14 @@ function updateCamera(dt) {
   const targetY = player.y + player.h/2 - VIEW_H/2;
   const worldW = tiles[0].length * TILE;
   const worldH = tiles.length * TILE;
-  camera.x += (targetX - camera.x) * Math.min(1, dt * 6);
-  camera.y += (targetY - camera.y) * Math.min(1, dt * 4);
+  if (cameraSnap) {
+    camera.x = targetX;
+    camera.y = targetY;
+    cameraSnap = false;
+  } else {
+    camera.x += (targetX - camera.x) * Math.min(1, dt * 6);
+    camera.y += (targetY - camera.y) * Math.min(1, dt * 4);
+  }
   camera.x = Math.max(0, Math.min(worldW - VIEW_W, camera.x));
   camera.y = Math.max(0, Math.min(worldH - VIEW_H, camera.y));
   if (shake > 0) shake -= dt;
