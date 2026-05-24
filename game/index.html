@@ -444,7 +444,12 @@ function loadLevel(idx) {
       const ch = tiles[y][x];
       const px = x * TILE, py = y * TILE;
       if (ch === "P") {
-        player = createPlayer(px, py - 4);
+        // Find ground below P and place feet exactly on it
+        let spawnY = py;
+        for (let gy = y + 1; gy < tiles.length; gy++) {
+          if (isSolid(x, gy)) { spawnY = gy * TILE - 54; break; }
+        }
+        player = createPlayer(px, spawnY);
         tiles[y][x] = ".";
       } else if (ch === "*") {
         entities.push({ kind: "coin", x: px + TILE/2, y: py + TILE/2, r: 12, t: Math.random() * 6.28, alive: true });
@@ -824,7 +829,13 @@ function hurtPlayer(instantDeath = false) {
   for (let y = 0; y < LEVELS[level.id - 1].map.length; y++) {
     for (let x = 0; x < LEVELS[level.id - 1].map[y].length; x++) {
       if (LEVELS[level.id - 1].map[y][x] === "P") {
-        player.x = x * TILE; player.y = y * TILE - 4;
+        // Find ground below P
+        let ry = y * TILE;
+        for (let gy = y + 1; gy < LEVELS[level.id - 1].map.length; gy++) {
+          const gc = LEVELS[level.id - 1].map[gy][x];
+          if (gc === "#" || gc === "=") { ry = gy * TILE - 54; break; }
+        }
+        player.x = x * TILE; player.y = ry;
         player.vx = 0; player.vy = 0;
         player.w = 38; player.h = 54;
         player.powerUp = null; player.powerUpTime = 0;
@@ -2443,6 +2454,14 @@ function buildLevelGrid() {
 function startLevel(idx) {
   lives = 3;
   loadLevel(idx);
+  // Force camera directly onto the player — no interpolation, no flags
+  camera.x = Math.max(0, player.x + player.w/2 - VIEW_W/2);
+  camera.y = Math.max(0, player.y + player.h/2 - VIEW_H/2);
+  const worldW = tiles[0].length * TILE;
+  const worldH = tiles.length * TILE;
+  camera.x = Math.min(camera.x, worldW - VIEW_W);
+  camera.y = Math.min(camera.y, worldH - VIEW_H);
+  cameraSnap = false; // already positioned
   state = State.PLAYING;
   show("hud");
 }
