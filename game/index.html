@@ -291,12 +291,14 @@ const ui = {
   completeStats: document.getElementById("complete-stats"),
 };
 
+const overlayKeys = ["title", "select", "hud", "pause", "complete", "gameover"];
 function show(...names) {
-  Object.entries(ui).forEach(([k, el]) => {
-    if (!el || !el.classList) return;
+  for (const k of overlayKeys) {
+    const el = ui[k];
+    if (!el || !el.classList) continue;
     if (names.includes(k)) el.classList.remove("hide");
     else el.classList.add("hide");
-  });
+  }
 }
 
 // ── Input ─────────────────────────────────────────────────────
@@ -755,7 +757,7 @@ function applySlopeCollision() {
 
 function spawnPowerUp(x, y) {
   const types = ["big", "fast", "invuln", "fire"];
-  const subtype = types[Math.floor(Math.random() * 3)];
+  const subtype = types[Math.floor(Math.random() * types.length)];
   entities.push({
     kind: "powerup", subtype,
     x: x - 14, y: y - 26,
