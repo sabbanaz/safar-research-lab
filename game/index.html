@@ -466,10 +466,13 @@ function loadLevel(idx) {
       }
     }
   }
-  camera.x = 0; camera.y = 0;
+  // Snap camera to player start
+  camera.x = Math.max(0, player.x - VIEW_W / 3);
+  camera.y = 0;
   ui.hudLevel.textContent = "WORLD " + level.id + " · " + level.name;
   ui.hudCoins.textContent = "★ " + coins;
-        document.getElementById("hud-next").textContent = "+1UP at " + (Math.floor(coins / 20) * 20 + 20);
+  document.getElementById("hud-next").textContent = "+1UP at " + (Math.floor(coins / 20) * 20 + 20);
+  document.getElementById("hud-fire").style.display = "none";
   ui.hudLives.textContent = "♥ " + lives;
 }
 
@@ -826,7 +829,12 @@ function hurtPlayer(instantDeath = false) {
         player.vx = 0; player.vy = 0;
         player.w = 38; player.h = 54;
         player.powerUp = null; player.powerUpTime = 0;
+        player.fireballs = 0; player.fireCooldown = 0;
+        document.getElementById("hud-fire").style.display = "none";
         player.invuln = 1.2;
+        // Snap camera to respawn point
+        camera.x = Math.max(0, player.x - VIEW_W / 2);
+        camera.y = 0;
         return;
       }
     }
