@@ -345,7 +345,7 @@ const LEVELS = [
       "........................................................................................................................................................................................................",
       "............................................*.*.*.......................................................................................................................................................",
       "......................................................................f...........................................................f.....................................................................",
-      "........................................*...==*=....*..................................................O................................................................................................",
+      "........................................*...==*=....*...................................................................................................................................................",
       "..............................Q.......====........====...........Q......................*.*.................................................Q............................................Q..............",
       "..P...*.*.*..e.*..*..*...*..*......e......*.....*......e..s...*.....*......e......*..*..s...*..e..............*....e.........*......*..e.........s..*......*....e.........*....*....e.........*......G..",
       "##########################################################....##########################################################...################################....#########################################",
@@ -395,7 +395,7 @@ const LEVELS = [
       "..............................*.......................................*.......................................*.......................................*.................................................",
       "............................====....................................====....................................====....................................====................................................",
       "........................................f.......................................f.......................................f.......................................f.......................................",
-      "...........................======..................................======.................O................======..................................======...............................................",
+      "...........................======..................................======..................................======..................................======...............................................",
       "..................................Q.....................................Q.....................................Q.....................................Q.....................................Q.............",
       "..P............e........*.......*..*.......s.........e.......***.................s..................*.................*s*........e........*.......*..*.......s.........e.......***...................G..",
       "########....######....#####....######....#####....######....#####....######....#####..###########.#####....######....#####....######....#####....######....#####....######....#####....#################",
@@ -458,15 +458,6 @@ function loadLevel(idx) {
       } else if (ch === "s") {
         entities.push({ kind: "spring", x: px + 6, y: py + TILE - 20, w: TILE - 12, h: 20, charge: 0 });
         tiles[y][x] = ".";
-      } else if (ch === "O") {
-        // Loop bottom sits on ground. Find ground row below and size loop so bottom = ground top.
-        let loopGroundY = (y + 2) * TILE;
-        for (let gy = y + 1; gy < tiles.length; gy++) {
-          if (isSolid(x, gy)) { loopGroundY = gy * TILE; break; }
-        }
-        const loopR = 90;
-        entities.push({ kind: "loop", cx: px + TILE/2, cy: loopGroundY - loopR, r: loopR });
-        tiles[y][x] = ".";
       } else if (ch === "G") {
         goal = { x: px + TILE/2, y: py, reached: false };
         tiles[y][x] = ".";
@@ -494,9 +485,6 @@ function createPlayer(x, y) {
     runSpeed: 0,
     powerUp: null,       // null | "big" | "fast" | "invuln"
     powerUpTime: 0,      // seconds remaining (0 = none)
-    looping: false,      // true while inside a Sonic-style loop
-    loopT: 0,            // parameter 0→2π around the circle
-    loopCx: 0, loopCy: 0, loopR: 0, loopSpeed: 0,
   };
 }
 
@@ -577,34 +565,6 @@ const SPRING_V = -1400;    // peak ≈ 445 px (≈9 tiles — clears full vertic
 
 // ── Player update ─────────────────────────────────────────────
 function updatePlayer(dt) {
-  // ── Loop mode: orbital physics override ──
-  if (player.looping) {
-    player.loopT += player.loopSpeed * dt;
-    player.x = player.loopCx + player.loopR * Math.sin(player.loopT) - player.w/2;
-    player.y = player.loopCy + player.loopR * Math.cos(player.loopT) - player.h/2;
-    player.facing = 1;
-    player.state = "run";
-    player.anim += dt * 18;
-    // Sparkle trail while looping
-    if (Math.random() < 0.5) {
-      spawnParticles(player.x + player.w/2, player.y + player.h/2, 1,
-        { color: "#ffd45a", life: 0.35, speed: 60, vy: 0, r: 2, gravity: 0 });
-    }
-    if (player.loopT >= Math.PI * 2) {
-      // Exit the loop on the right side at full speed
-      player.looping = false;
-      player.x = player.loopCx + player.loopR + 8;
-      player.y = player.loopCy + player.loopR - player.h;
-      player.vx = player.loopSpeed * player.loopR;
-      player.vy = 0;
-      player.onGround = false;
-      spawnParticles(player.x, player.y + player.h/2, 16,
-        { color: "#7bd389", life: 0.5, speed: 260, vy: -80 });
-    }
-    if (player.invuln > 0) player.invuln -= dt;
-    if (player.powerUpTime > 0) { player.powerUpTime -= dt; if (player.powerUpTime <= 0) clearPowerUp(); }
-    return;
-  }
 
   const left = keys["ArrowLeft"] || keys["KeyA"];
   const right = keys["ArrowRight"] || keys["KeyD"];
@@ -927,25 +887,6 @@ function updateEntities(dt) {
         const colors = { big: "#ff5d8f", fast: "#ffd45a", invuln: "#a78bfa" };
         spawnParticles(e.x + e.w/2, e.y + e.h/2, 26,
           { color: colors[e.subtype], life: 0.7, speed: 300, vy: -160, r: 3 });
-      }
-    } else if (e.kind === "loop") {
-      // Entry: player running fast across the loop's left-side ground-level entry
-      if (!player.looping && player.onGround) {
-        const entryX = e.cx - e.r;
-        const groundY = e.cy + e.r;  // bottom of circle = ground top
-        const dx = (player.x + player.w) - entryX;
-        const dy = (player.y + player.h) - groundY;
-        if (player.vx > 300 && dx > -15 && dx < 40 && Math.abs(dy) < 40) {
-          player.looping = true;
-          player.loopT = 0;
-          player.loopCx = e.cx;
-          player.loopCy = e.cy;
-          player.loopR = e.r;
-          player.loopSpeed = Math.max(4.0, player.vx / e.r);
-          player.vx = 0; player.vy = 0;
-          spawnParticles(player.x + player.w, player.y + player.h/2, 12,
-            { color: "#ffd45a", life: 0.4, speed: 200, vy: -60 });
-        }
       }
     }
   }
@@ -1463,104 +1404,10 @@ function drawEntities() {
     } else if (e.kind === "spring") {
       drawSpring(x, y, e);
     } else if (e.kind === "powerup" && e.alive) {
-      drawPowerUp(x, y, e);
-    } else if (e.kind === "loop") {
-      drawLoopTrack(e);
-    }
+      drawPowerUp(x, y, e);    }
   }
 }
 
-function drawLoopTrack(e) {
-  const cx = e.cx - camera.x;
-  const cy = e.cy - camera.y;
-  const r = e.r;
-  const pad = 28;      // extra wall thickness around the circle
-  const trackW = 16;   // running surface thickness
-  const blockL = cx - r - pad;
-  const blockR = cx + r + pad;
-  const blockT = cy - r - pad;
-  const blockB = cy + r;  // bottom = ground level
-  const checkSize = 16;
-  const brown1 = "#8B6914";
-  const brown2 = "#C49A3C";
-
-  ctx.save();
-
-  // ── 1. Shadow behind the block ──
-  ctx.fillStyle = "rgba(0,0,0,0.35)";
-  ctx.fillRect(blockL + 6, blockT + 6, blockR - blockL, blockB - blockT);
-
-  // ── 2. Checkered block (clip out the circle center for sky) ──
-  ctx.save();
-  ctx.beginPath();
-  // Outer rect
-  ctx.rect(blockL, blockT, blockR - blockL, blockB - blockT);
-  // Inner circle cutout (counter-clockwise for hole)
-  ctx.arc(cx, cy, r - trackW, 0, 6.283, true);
-  ctx.clip();
-  // Draw checkerboard
-  for (let by = blockT; by < blockB; by += checkSize) {
-    for (let bx = blockL; bx < blockR; bx += checkSize) {
-      const ci = Math.floor((bx - blockL) / checkSize);
-      const cj = Math.floor((by - blockT) / checkSize);
-      ctx.fillStyle = (ci + cj) % 2 === 0 ? brown1 : brown2;
-      ctx.fillRect(bx, by, checkSize, checkSize);
-    }
-  }
-  // Darken the inner ring for depth
-  ctx.fillStyle = "rgba(0,0,0,0.25)";
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, 6.283);
-  ctx.arc(cx, cy, r - trackW, 0, 6.283, true);
-  ctx.fill();
-  ctx.restore();
-
-  // ── 3. Track surface (inner ring where the player runs) ──
-  ctx.strokeStyle = "#B8892A";
-  ctx.lineWidth = trackW;
-  ctx.beginPath(); ctx.arc(cx, cy, r - trackW/2, 0, 6.283); ctx.stroke();
-  // Highlight on inner edge of track
-  ctx.strokeStyle = "rgba(255,255,255,0.22)";
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(cx, cy, r - trackW + 1, 0, 6.283); ctx.stroke();
-  // Shadow on outer edge of track
-  ctx.strokeStyle = "rgba(0,0,0,0.35)";
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(cx, cy, r - 1, 0, 6.283); ctx.stroke();
-
-  // ── 4. Block edges — darker outline ──
-  ctx.strokeStyle = "rgba(0,0,0,0.45)";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(blockL, blockT, blockR - blockL, blockB - blockT);
-
-  // ── 5. Grass on top of the block ──
-  ctx.fillStyle = "#5fa867";
-  ctx.fillRect(blockL, blockT - 6, blockR - blockL, 8);
-  ctx.fillStyle = "#7bd389";
-  ctx.fillRect(blockL, blockT - 8, blockR - blockL, 4);
-  // Individual grass blades
-  for (let i = 0; i < (blockR - blockL) / 6; i++) {
-    const gx = blockL + i * 6 + Math.random() * 2;
-    const gh = 4 + (i * 13 % 5);
-    ctx.fillStyle = i % 2 ? "#54a560" : "#8fd89a";
-    ctx.fillRect(gx, blockT - 8 - gh, 2, gh);
-  }
-
-  // ── 6. Entry ramp hints (small arrows on each side at ground level) ──
-  ctx.fillStyle = "rgba(255,212,90,0.75)";
-  // Left arrow
-  const ax = blockL - 16, ay = blockB - 10;
-  ctx.beginPath();
-  ctx.moveTo(ax, ay - 6); ctx.lineTo(ax + 14, ay); ctx.lineTo(ax, ay + 6);
-  ctx.closePath(); ctx.fill();
-  // Right arrow
-  const ax2 = blockR + 16;
-  ctx.beginPath();
-  ctx.moveTo(ax2, ay - 6); ctx.lineTo(ax2 - 14, ay); ctx.lineTo(ax2, ay + 6);
-  ctx.closePath(); ctx.fill();
-
-  ctx.restore();
-}
 
 function drawPowerUp(x, y, e) {
   const cx = x + e.w/2, cy = y + e.h/2;
@@ -1927,12 +1774,6 @@ function drawPlayer() {
   ctx.translate(x + player.w/2, y + player.h);
   const bigScale = player.powerUp === "big" ? 1.28 : 1;
   ctx.scale(player.facing * bigScale, bigScale);
-  // Rotate when inside a loop
-  if (player.looping) {
-    ctx.translate(0, -player.h/2);
-    ctx.rotate(player.loopT);
-    ctx.translate(0, player.h/2);
-  }
 
   const a = player.anim;
   let legL = 0, legR = 0, armL = 0, armR = 0, bodyBob = 0;
