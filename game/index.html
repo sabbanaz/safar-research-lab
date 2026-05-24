@@ -215,6 +215,7 @@
       <div class="chip" id="hud-coins" style="font-size:18px;">★ 0</div>
       <div class="chip" id="hud-next" style="font-size:12px; color:#ffd45a;">+1UP at 20</div>
       <div class="chip" id="hud-level">WORLD 1</div>
+      <div class="chip" id="hud-fire" class="hide" style="font-size:14px; color:#ff6020; display:none;">🔥 0</div>
       <div class="chip" id="hud-lives" style="font-size:18px;">♥ 3</div>
     </div>
 
@@ -485,8 +486,10 @@ function createPlayer(x, y) {
     anim: 0,
     state: "idle",
     runSpeed: 0,
-    powerUp: null,       // null | "big" | "fast" | "invuln"
+    powerUp: null,       // null | "big" | "fast" | "invuln" | "fire"
     powerUpTime: 0,      // seconds remaining (0 = none)
+    fireballs: 0,        // ammo remaining (fire power-up)
+    fireCooldown: 0,     // time until next fireball can be thrown
   };
 }
 
@@ -687,8 +690,39 @@ function updatePlayer(dt) {
       player.y + Math.random() * player.h, 1,
       { color: `hsl(${hue},90%,65%)`, life: 0.5, speed: 30, vy: -40, r: 2, gravity: -50 });
   }
+  // Fire aura
+  if (player.powerUp === "fire" && Math.random() < 0.4) {
+    spawnParticles(
+      player.x + Math.random() * player.w,
+      player.y + player.h * 0.7 + Math.random() * player.h * 0.3, 1,
+      { color: Math.random() < 0.5 ? "#ff6020" : "#ffd45a", life: 0.3, speed: 20, vy: -50, r: 2, gravity: -80 });
+  }
 
   if (player.invuln > 0) player.invuln -= dt;
+
+  // Fire power-up: throw fireball with X or Z key
+  if (player.fireCooldown > 0) player.fireCooldown -= dt;
+  if (player.powerUp === "fire" && player.fireballs > 0 && player.fireCooldown <= 0) {
+    if (consumeJustPressed("KeyX") || consumeJustPressed("KeyZ")) {
+      player.fireballs -= 1;
+      player.fireCooldown = 0.25;
+      document.getElementById("hud-fire").textContent = "🔥 " + player.fireballs;
+      const fbx = player.x + (player.facing > 0 ? player.w + 4 : -14);
+      const fby = player.y + player.h / 2 - 6;
+      entities.push({
+        kind: "fireball",
+        x: fbx, y: fby, w: 14, h: 14,
+        vx: player.facing * 500 + player.vx * 0.3,
+        vy: -60,
+        alive: true, age: 0,
+      });
+      spawnParticles(fbx + 7, fby + 7, 6, { color: "#ff6020", life: 0.25, speed: 120, vy: -30, r: 2, gravity: 200 });
+      if (player.fireballs <= 0) {
+        player.powerUp = null;
+        player.powerUpTime = 0;
+      }
+    }
+  }
 }
 
 function bumpQBlock(tx, ty) {
@@ -717,7 +751,7 @@ function applySlopeCollision() {
 }
 
 function spawnPowerUp(x, y) {
-  const types = ["big", "fast", "invuln"];
+  const types = ["big", "fast", "invuln", "fire"];
   const subtype = types[Math.floor(Math.random() * 3)];
   entities.push({
     kind: "powerup", subtype,
@@ -744,14 +778,22 @@ function applyPowerUp(type) {
   } else if (type === "invuln") {
     player.powerUp = "invuln";
     player.powerUpTime = 9;
+  } else if (type === "fire") {
+    player.powerUp = "fire";
+    player.powerUpTime = 15;
+    player.fireballs = 12;
+    document.getElementById("hud-fire").style.display = "";
+    document.getElementById("hud-fire").textContent = "🔥 12 — press X";
   }
 }
 
 function clearPowerUp() {
   if (player.powerUp === "big") {
-    player.w = 32; player.h = 46;
+    player.w = 38; player.h = 54;
   }
+  document.getElementById("hud-fire").style.display = "none";
   player.powerUp = null;
+  player.fireballs = 0;
 }
 
 function hurtPlayer(instantDeath = false) {
@@ -759,7 +801,7 @@ function hurtPlayer(instantDeath = false) {
   if (player.powerUp === "invuln" && !instantDeath) return;
   // BIG power-up acts as a shield — revert to small instead of losing a life
   if (player.powerUp === "big" && !instantDeath) {
-    player.w = 32; player.h = 46;
+    player.w = 38; player.h = 54;
     player.y += 12;
     player.powerUp = null;
     player.powerUpTime = 0;
@@ -782,7 +824,7 @@ function hurtPlayer(instantDeath = false) {
       if (LEVELS[level.id - 1].map[y][x] === "P") {
         player.x = x * TILE; player.y = y * TILE - 4;
         player.vx = 0; player.vy = 0;
-        player.w = 32; player.h = 46;
+        player.w = 38; player.h = 54;
         player.powerUp = null; player.powerUpTime = 0;
         player.invuln = 1.2;
         return;
@@ -894,15 +936,60 @@ function updateEntities(dt) {
         e.alive = false;
         applyPowerUp(e.subtype);
         // colorful burst
-        const colors = { big: "#ff5d8f", fast: "#ffd45a", invuln: "#a78bfa" };
+        const colors = { big: "#ff5d8f", fast: "#ffd45a", invuln: "#a78bfa", fire: "#ff6020" };
         spawnParticles(e.x + e.w/2, e.y + e.h/2, 26,
           { color: colors[e.subtype], life: 0.7, speed: 300, vy: -160, r: 3 });
+      }
+    } else if (e.kind === "fireball") {
+      if (!e.alive) continue;
+      e.age += dt;
+      e.vy += GRAVITY * 0.7 * dt;
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+      // Bounce off ground
+      if (rectVsTiles(e.x, e.y, e.w, e.h)) {
+        if (e.vy > 0) {
+          while (rectVsTiles(e.x, e.y, e.w, e.h)) e.y -= 1;
+          e.vy = -280;
+        } else {
+          while (rectVsTiles(e.x, e.y, e.w, e.h)) e.y += 1;
+          e.vy = 0;
+        }
+      }
+      // Wall collision — destroy fireball
+      if (rectVsTiles(e.x + (e.vx > 0 ? e.w : -1), e.y, 1, e.h)) {
+        e.alive = false;
+        spawnParticles(e.x + e.w/2, e.y + e.h/2, 8, { color: "#ff6020", life: 0.3, speed: 160, vy: -40, r: 2 });
+      }
+      // Kill enemies on contact
+      for (const other of entities) {
+        if ((other.kind === "walker" || other.kind === "flyer") && other.alive) {
+          if (rectsOverlap(entityAABB(e), entityAABB(other))) {
+            other.alive = false;
+            e.alive = false;
+            spawnParticles(other.x + (other.w||0)/2, other.y + (other.h||0)/2, 18,
+              { color: "#ff4400", life: 0.6, speed: 260, vy: -100, r: 3 });
+            coins += 1;
+            ui.hudCoins.textContent = "★ " + coins;
+        document.getElementById("hud-next").textContent = "+1UP at " + (Math.floor(coins / 20) * 20 + 20);
+            if (coins % 20 === 0) { lives += 1; ui.hudLives.textContent = "♥ " + lives; }
+            break;
+          }
+        }
+      }
+      // Expire after 2.5 seconds or if off screen
+      if (e.age > 2.5 || e.y > tiles.length * TILE + 100) e.alive = false;
+      // Fire trail particles
+      if (e.alive && Math.random() < 0.6) {
+        spawnParticles(e.x + e.w/2, e.y + e.h/2, 1,
+          { color: Math.random() < 0.5 ? "#ff6020" : "#ffd45a", life: 0.2, speed: 40, vy: -30, r: 2, gravity: 100 });
       }
     }
   }
   entities = entities.filter(e =>
     !(e.kind === "coin" && !e.alive) &&
-    !(e.kind === "powerup" && !e.alive)
+    !(e.kind === "powerup" && !e.alive) &&
+    !(e.kind === "fireball" && !e.alive)
   );
 
   // goal
@@ -1414,10 +1501,33 @@ function drawEntities() {
     } else if (e.kind === "spring") {
       drawSpring(x, y, e);
     } else if (e.kind === "powerup" && e.alive) {
-      drawPowerUp(x, y, e);    }
+      drawPowerUp(x, y, e);
+    } else if (e.kind === "fireball" && e.alive) {
+      drawFireball(x, y, e);
+    }
   }
 }
 
+function drawFireball(x, y, e) {
+  const cx = x + e.w/2, cy = y + e.h/2;
+  // Glow halo
+  const glow = ctx.createRadialGradient(cx, cy, 1, cx, cy, 14);
+  glow.addColorStop(0, "rgba(255,200,60,0.7)");
+  glow.addColorStop(0.5, "rgba(255,96,32,0.4)");
+  glow.addColorStop(1, "rgba(255,60,0,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(cx, cy, 14, 0, 6.283); ctx.fill();
+  // Core fireball
+  const core = ctx.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 6);
+  core.addColorStop(0, "#fff8c0");
+  core.addColorStop(0.4, "#ffaa20");
+  core.addColorStop(1, "#e03000");
+  ctx.fillStyle = core;
+  ctx.beginPath(); ctx.arc(cx, cy, 6, 0, 6.283); ctx.fill();
+  // Bright center
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(cx - 1, cy - 1, 1.5, 0, 6.283); ctx.fill();
+}
 
 function drawPowerUp(x, y, e) {
   const cx = x + e.w/2, cy = y + e.h/2;
@@ -1491,6 +1601,27 @@ function drawPowerUp(x, y, e) {
     ctx.lineWidth = 1.2;
     ctx.stroke();
     ctx.restore();
+  } else if (e.subtype === "fire") {
+    // Fireball icon — flame shape
+    const flicker = Math.sin(timeAccum * 10) * 2;
+    const fg = ctx.createRadialGradient(cx - 1, cy + 2, 1, cx, cy, 10);
+    fg.addColorStop(0, "#fff8c0");
+    fg.addColorStop(0.35, "#ffaa20");
+    fg.addColorStop(0.7, "#e03000");
+    fg.addColorStop(1, "#800000");
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 11 + flicker);
+    ctx.quadraticCurveTo(cx + 9, cy - 4, cx + 7, cy + 5);
+    ctx.quadraticCurveTo(cx + 4, cy + 10, cx, cy + 8);
+    ctx.quadraticCurveTo(cx - 4, cy + 10, cx - 7, cy + 5);
+    ctx.quadraticCurveTo(cx - 9, cy - 4, cx, cy - 11 + flicker);
+    ctx.fill();
+    // inner bright core
+    ctx.fillStyle = "#ffd45a";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 2, 3, 4, 0, 0, 6.283);
+    ctx.fill();
   }
 }
 
