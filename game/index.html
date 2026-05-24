@@ -340,14 +340,14 @@ const LEVELS = [
     },
     map: [
       "....................................................................................................",
-      "....................................................................................................",
-      "............................*.*.*.....................................*.*.*.........................",
-      "........................=========.................................=========.........................",
-      "...............f..................................f.....................................f...........",
-      "..............*.*.*.........................*.*.*.............................*.*.*.................",
-      "............=========.....................=========.........................=========...............",
+      "..........................*.*.*.................................*.*.*...............................",
+      "..........................=====.................................=====...............................",
+      "..............................................*.*.*.................................................",
+      ".........................======................................======...............................",
+      "..................................................f.....................................f...........",
+      "........................========..............................========..............................",
       "....................^.^...............................^^^............................^..............",
-      "..P...........e.........s........e................e...........s...............e..................G..",
+      "..P...........e.........s.............e.............e.........s...............e..................G..",
       "###################################...################################...###########################",
       "###################################...################################...###########################",
       "###################################...################################...###########################",
@@ -365,14 +365,14 @@ const LEVELS = [
     },
     map: [
       "....................................................................................................",
-      ".........*.*.*.............................*.*.*.............................*.*.*..................",
-      "........========..........................========..........................========................",
-      ".........................f..................................f.......................................",
-      "......................*.*.*.............................*.*.*.............................*.*.*.....",
-      "....................=========.........................=========.........................=========...",
-      "..................^^^.................^^^.................^^^...................^^^.................",
-      "............s................................s..........................s...........................",
-      "..P.........e...............e...............e.................e.................e................G..",
+      "....................*.*.*.............................*.*.*.........................*.*.*...........",
+      "....................=====.............................=====.........................=====...........",
+      "........................................*.*.*...........................*.*.*.......................",
+      "...................======............................======........................======...........",
+      "......................................f...............................f.............................",
+      "..................========..........................========......................========..........",
+      "..................^^^.................^^^.......................^^^.................................",
+      "..P.........e...............e...............s.................e...............e..................G..",
       "###############..###############..################..################..###############..#############",
       "###############..###############..################..################..###############..#############",
       "###############..###############..################..################..###############..#############",
@@ -390,12 +390,12 @@ const LEVELS = [
     },
     map: [
       "....................................................................................................",
-      "....................................................................................................",
-      "..................*.*.*........................*.*.*..........................*.*.*.................",
-      "................========.....................========.......................========................",
+      "....................*.*.*.........................*.*.*.........................*.*.*...............",
+      "....................=====.........................=====.........................=====...............",
+      "...................................*.*.*............................................................",
+      "...................======........................======........................======...............",
       ".........................f..................................f...........................f...........",
-      "..................*..*............*..*...............*..*...........*..*............................",
-      "................========........========...........========.......========..........................",
+      "..................========......................========......................========..............",
       "....................^^^.................f.............................^^^...........................",
       "..P.........s.........e.........s.........e.........s.........e.........s.........e..............G..",
       "######....######....######....######....######....######....######....######....######....##########",
@@ -534,20 +534,20 @@ function spawnParticles(x, y, n, opts = {}) {
 }
 
 // ── Physics constants ─────────────────────────────────────────
-const GRAVITY = 1900;
-const MAX_FALL = 900;
-const ACCEL = 1400;
-const RUN_ACCEL = 2000;
-const FRICTION = 1600;
-const AIR_FRICTION = 200;
+const GRAVITY = 2300;
+const MAX_FALL = 1050;
+const ACCEL = 1500;
+const RUN_ACCEL = 2200;
+const FRICTION = 1700;
+const AIR_FRICTION = 240;
 const WALK_MAX = 240;
-const RUN_MAX = 420;
-const JUMP_V = -700;
+const RUN_MAX = 440;
+const JUMP_V = -920;       // peak rise ≈ 184 px (≈3.8 tiles)
 const JUMP_CUT = 0.45;
-const COYOTE_TIME = 0.12;
-const JUMP_BUFFER = 0.12;
-const BOUNCE_V = -520;
-const SPRING_V = -1080;
+const COYOTE_TIME = 0.14;
+const JUMP_BUFFER = 0.14;
+const BOUNCE_V = -680;
+const SPRING_V = -1200;
 
 // ── Player update ─────────────────────────────────────────────
 function updatePlayer(dt) {
@@ -787,79 +787,210 @@ function updateCamera(dt) {
 }
 
 // ── Rendering ─────────────────────────────────────────────────
+function shade(hex, amt) {
+  // amt < 0 darkens, > 0 lightens
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 0xff, g = (n >> 8) & 0xff, b = n & 0xff;
+  r = Math.max(0, Math.min(255, r + amt));
+  g = Math.max(0, Math.min(255, g + amt));
+  b = Math.max(0, Math.min(255, b + amt));
+  return `rgb(${r|0},${g|0},${b|0})`;
+}
+
 function drawSky() {
   const p = level.palette;
   const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
   g.addColorStop(0, p.sky1);
-  g.addColorStop(0.55, p.sky2);
-  g.addColorStop(1, p.sky3);
+  g.addColorStop(0.4, p.sky2);
+  g.addColorStop(0.85, p.sky3);
+  g.addColorStop(1, shade(p.sky3, -25));
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
-  // big sun/moon
+  // atmospheric haze band near the horizon
+  const haze = ctx.createLinearGradient(0, VIEW_H*0.55, 0, VIEW_H*0.85);
+  haze.addColorStop(0, "rgba(255,255,255,0)");
+  haze.addColorStop(1, "rgba(255,240,220,0.18)");
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, VIEW_H*0.55, VIEW_W, VIEW_H*0.3);
+
   if (level.id === 1) {
-    // sunset sun
+    // Sunset sun + rays
     const sunX = VIEW_W * 0.78 - camera.x * 0.05;
-    const sunY = VIEW_H * 0.35;
-    const sg = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, 140);
-    sg.addColorStop(0, "rgba(255,235,180,1)");
-    sg.addColorStop(0.5, "rgba(255,180,90,0.7)");
+    const sunY = VIEW_H * 0.32;
+    // soft glow
+    const sg = ctx.createRadialGradient(sunX, sunY, 6, sunX, sunY, 200);
+    sg.addColorStop(0, "rgba(255,245,210,1)");
+    sg.addColorStop(0.35, "rgba(255,180,90,0.55)");
     sg.addColorStop(1, "rgba(255,120,90,0)");
     ctx.fillStyle = sg;
-    ctx.beginPath(); ctx.arc(sunX, sunY, 140, 0, 6.283); ctx.fill();
-    ctx.fillStyle = "#fff5cc";
-    ctx.beginPath(); ctx.arc(sunX, sunY, 50, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(sunX, sunY, 200, 0, 6.283); ctx.fill();
+    // rays
+    ctx.save();
+    ctx.translate(sunX, sunY);
+    ctx.rotate(timeAccum * 0.05);
+    for (let i = 0; i < 12; i++) {
+      ctx.rotate(Math.PI / 6);
+      const grd = ctx.createLinearGradient(0, 0, 240, 0);
+      grd.addColorStop(0, "rgba(255,235,180,0.18)");
+      grd.addColorStop(1, "rgba(255,235,180,0)");
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.moveTo(0, -3);
+      ctx.lineTo(240, -16);
+      ctx.lineTo(240, 16);
+      ctx.lineTo(0, 3);
+      ctx.fill();
+    }
+    ctx.restore();
+    // sun core
+    const core = ctx.createRadialGradient(sunX-12, sunY-12, 2, sunX, sunY, 56);
+    core.addColorStop(0, "#fff8d8");
+    core.addColorStop(0.8, "#ffe089");
+    core.addColorStop(1, "#ffb05a");
+    ctx.fillStyle = core;
+    ctx.beginPath(); ctx.arc(sunX, sunY, 54, 0, 6.283); ctx.fill();
+
+    // birds in the distance
+    for (let i = 0; i < 6; i++) {
+      const bx = (i * 220 - camera.x * 0.1 + 100) % (VIEW_W + 200) - 100;
+      const by = 90 + Math.sin(timeAccum*0.5 + i) * 8 + i * 4;
+      const flap = Math.sin(timeAccum * 6 + i) * 3;
+      ctx.strokeStyle = "rgba(30,18,48,0.55)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(bx - 6, by + flap);
+      ctx.quadraticCurveTo(bx, by - 3, bx + 6, by + flap);
+      ctx.stroke();
+    }
   } else if (level.id === 2) {
-    // crystal glow
-    for (let i = 0; i < 30; i++) {
-      const x = (i * 137 + camera.x * 0.05) % VIEW_W;
-      const y = (i * 71) % VIEW_H * 0.6 + 40;
-      const r = 1 + (i % 3);
-      ctx.fillStyle = `rgba(180,200,255,${0.4 + (i%3)*0.2})`;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
+    // Crystal cavern: glittering specks + soft ceiling glow
+    const glow = ctx.createRadialGradient(VIEW_W/2, -30, 20, VIEW_W/2, -30, 380);
+    glow.addColorStop(0, "rgba(180,140,255,0.45)");
+    glow.addColorStop(1, "rgba(180,140,255,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    // stalactites
+    ctx.fillStyle = "rgba(50,30,90,0.65)";
+    for (let i = 0; i < 14; i++) {
+      const sx = (i * 90 - camera.x * 0.15 + 1000) % (VIEW_W + 90) - 45;
+      const sh = 30 + ((i*37) % 5) * 8;
+      ctx.beginPath();
+      ctx.moveTo(sx - 14, 0); ctx.lineTo(sx + 14, 0); ctx.lineTo(sx, sh); ctx.closePath();
+      ctx.fill();
+    }
+    // sparkles
+    for (let i = 0; i < 50; i++) {
+      const sx = (i * 131 + camera.x * 0.05) % VIEW_W;
+      const sy = ((i * 71) % (VIEW_H*0.6)) + 40;
+      const pulse = (Math.sin(timeAccum * 3 + i) + 1) * 0.5;
+      const r = 0.8 + (i % 3) * 0.6 + pulse;
+      ctx.fillStyle = `rgba(200,210,255,${0.3 + pulse * 0.4})`;
+      ctx.beginPath(); ctx.arc(sx, sy, r, 0, 6.283); ctx.fill();
     }
   } else if (level.id === 3) {
-    // big sun
-    const sunX = 140 - camera.x * 0.03;
-    const sunY = 120;
-    const sg = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 180);
-    sg.addColorStop(0, "rgba(255,255,210,1)");
-    sg.addColorStop(0.5, "rgba(255,200,120,0.5)");
+    // Soaring sky: big sun + soft clouds
+    const sunX = 160 - camera.x * 0.03;
+    const sunY = 110;
+    const sg = ctx.createRadialGradient(sunX, sunY, 14, sunX, sunY, 220);
+    sg.addColorStop(0, "rgba(255,250,220,1)");
+    sg.addColorStop(0.5, "rgba(255,200,120,0.4)");
     sg.addColorStop(1, "rgba(255,150,90,0)");
     ctx.fillStyle = sg;
-    ctx.beginPath(); ctx.arc(sunX, sunY, 180, 0, 6.283); ctx.fill();
-    ctx.fillStyle = "#fffae0";
-    ctx.beginPath(); ctx.arc(sunX, sunY, 55, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(sunX, sunY, 220, 0, 6.283); ctx.fill();
+    const core = ctx.createRadialGradient(sunX-14, sunY-14, 3, sunX, sunY, 62);
+    core.addColorStop(0, "#fffae0");
+    core.addColorStop(1, "#ffd47a");
+    ctx.fillStyle = core;
+    ctx.beginPath(); ctx.arc(sunX, sunY, 60, 0, 6.283); ctx.fill();
+    // distant clouds
+    for (let i = 0; i < 8; i++) {
+      const cx = (i * 200 - camera.x * 0.08 + 600) % (VIEW_W + 200) - 100;
+      const cy = 60 + (i*53)%80;
+      drawCloud(cx, cy, 0.7 + (i%3)*0.25, "rgba(255,255,255,0.55)");
+    }
   }
+}
+
+function drawCloud(x, y, scale, color) {
+  ctx.fillStyle = color;
+  const s = scale;
+  ctx.beginPath();
+  ctx.arc(x, y, 16*s, 0, 6.283);
+  ctx.arc(x + 18*s, y - 6*s, 14*s, 0, 6.283);
+  ctx.arc(x + 36*s, y, 18*s, 0, 6.283);
+  ctx.arc(x + 18*s, y + 6*s, 12*s, 0, 6.283);
+  ctx.arc(x - 14*s, y + 4*s, 12*s, 0, 6.283);
+  ctx.fill();
 }
 
 function drawParallax() {
   const p = level.palette;
-  // Far layer
-  ctx.fillStyle = p.far;
-  for (let i = -2; i < 30; i++) {
-    const x = i * 240 - (camera.x * 0.15) % 240;
-    const h = 160 + Math.sin(i * 1.3) * 40;
-    drawHill(x, VIEW_H - h, 240, h, p.far);
+  // far mountains with snow-cap-like highlight on top
+  for (let i = -2; i < 18; i++) {
+    const x = i * 280 - (camera.x * 0.12) % 280;
+    const h = 180 + Math.sin(i * 1.3) * 40;
+    drawMountain(x, VIEW_H - h, 280, h, p.far, shade(p.far, 40));
   }
-  // Mid layer
-  for (let i = -2; i < 30; i++) {
-    const x = i * 180 - (camera.x * 0.3) % 180 - 60;
-    const h = 220 + Math.sin(i * 0.7 + 2) * 60;
-    drawHill(x, VIEW_H - h, 180, h, p.mid);
+  // mid hills
+  for (let i = -2; i < 22; i++) {
+    const x = i * 200 - (camera.x * 0.28) % 200 - 60;
+    const h = 220 + Math.sin(i * 0.7 + 2) * 50;
+    drawHill(x, VIEW_H - h, 200, h, p.mid, shade(p.mid, 25));
   }
-  // Near layer
+  // near hills
+  for (let i = -2; i < 26; i++) {
+    const x = i * 140 - (camera.x * 0.52) % 140 - 40;
+    const h = 160 + Math.sin(i * 1.9 + 0.5) * 36;
+    drawHill(x, VIEW_H - h, 150, h, p.near, shade(p.near, 30));
+  }
+  // foreground silhouettes (very close, just blobs at the bottom)
+  ctx.fillStyle = shade(p.near, -30);
   for (let i = -2; i < 30; i++) {
-    const x = i * 120 - (camera.x * 0.55) % 120 - 40;
-    const h = 140 + Math.sin(i * 1.9 + 0.5) * 30;
-    drawHill(x, VIEW_H - h, 130, h, p.near);
+    const x = i * 80 - (camera.x * 0.85) % 80;
+    const h = 36 + (Math.sin(i * 3.1) * 0.5 + 0.5) * 18;
+    ctx.beginPath();
+    ctx.moveTo(x, VIEW_H);
+    ctx.quadraticCurveTo(x + 40, VIEW_H - h, x + 80, VIEW_H);
+    ctx.closePath(); ctx.fill();
   }
 }
-function drawHill(x, y, w, h, color) {
-  ctx.fillStyle = color;
+
+function drawHill(x, y, w, h, baseColor, hiColor) {
+  const grad = ctx.createLinearGradient(0, y, 0, y + h);
+  grad.addColorStop(0, hiColor || baseColor);
+  grad.addColorStop(0.5, baseColor);
+  grad.addColorStop(1, shade(baseColor, -20));
+  ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.moveTo(x, y + h);
-  ctx.quadraticCurveTo(x + w/2, y - 20, x + w, y + h);
+  ctx.quadraticCurveTo(x + w/2, y - 24, x + w, y + h);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawMountain(x, y, w, h, baseColor, capColor) {
+  const grad = ctx.createLinearGradient(0, y, 0, y + h);
+  grad.addColorStop(0, shade(baseColor, 30));
+  grad.addColorStop(1, shade(baseColor, -15));
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(x, y + h);
+  ctx.lineTo(x + w*0.3, y + h*0.15);
+  ctx.lineTo(x + w*0.45, y + h*0.5);
+  ctx.lineTo(x + w*0.55, y);
+  ctx.lineTo(x + w*0.7, y + h*0.4);
+  ctx.lineTo(x + w, y + h);
+  ctx.closePath();
+  ctx.fill();
+  // snow cap
+  ctx.fillStyle = capColor || "rgba(255,255,255,0.4)";
+  ctx.beginPath();
+  ctx.moveTo(x + w*0.5, y + 6);
+  ctx.lineTo(x + w*0.55, y);
+  ctx.lineTo(x + w*0.62, y + 14);
+  ctx.lineTo(x + w*0.5, y + 18);
+  ctx.lineTo(x + w*0.44, y + 12);
   ctx.closePath();
   ctx.fill();
 }
@@ -879,46 +1010,125 @@ function drawTiles() {
       const x = tx * TILE - camera.x;
       const y = ty * TILE - camera.y;
       const above = tileAt(tx, ty - 1);
+      const below = tileAt(tx, ty + 1);
+      const left = tileAt(tx - 1, ty);
+      const right = tileAt(tx + 1, ty);
       const isTop = !(above === "#" || above === "=");
+      const isBottom = !(below === "#" || below === "=");
+      const isLeftEdge = !(left === "#" || left === "=");
+      const isRightEdge = !(right === "#" || right === "=");
 
-      // body
+      // ── Body with vertical gradient ──
       const g = ctx.createLinearGradient(x, y, x, y + TILE);
-      g.addColorStop(0, p.groundBody);
+      g.addColorStop(0, shade(p.groundBody, 10));
+      g.addColorStop(0.5, p.groundBody);
       g.addColorStop(1, p.groundShade);
       ctx.fillStyle = g;
       ctx.fillRect(x, y, TILE, TILE);
 
-      // top
+      // ── Deterministic noise speckles for texture ──
+      const seed = tx * 73 + ty * 131;
+      ctx.fillStyle = "rgba(0,0,0,0.08)";
+      for (let i = 0; i < 5; i++) {
+        const sx = x + ((seed + i*37) % 44) + 2;
+        const sy = y + ((seed*3 + i*53) % 40) + 6;
+        const sr = 1 + ((seed + i) % 2);
+        ctx.fillRect(sx, sy, sr, sr);
+      }
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      for (let i = 0; i < 3; i++) {
+        const sx = x + ((seed*7 + i*41) % 42) + 3;
+        const sy = y + ((seed*11 + i*29) % 38) + 6;
+        ctx.fillRect(sx, sy, 1, 1);
+      }
+
+      // ── Top surface band (grass/crystal/cloud) ──
       if (isTop) {
-        ctx.fillStyle = p.groundTop;
-        ctx.fillRect(x, y, TILE, 12);
-        // crystal sparkle for cavern
-        if (level.id === 2) {
-          ctx.fillStyle = "rgba(255,255,255,0.6)";
-          for (let i = 0; i < 3; i++) {
-            const sx = x + 8 + i * 14;
-            const sy = y + 4 + ((tx * 31 + i) % 4);
-            ctx.fillRect(sx, sy, 2, 2);
+        // base top color
+        const topGrad = ctx.createLinearGradient(x, y, x, y + 14);
+        topGrad.addColorStop(0, shade(p.groundTop, 20));
+        topGrad.addColorStop(1, p.groundTop);
+        ctx.fillStyle = topGrad;
+        ctx.fillRect(x, y, TILE, 14);
+
+        if (level.id === 1) {
+          // grass blades, varied lengths and shades
+          for (let i = 0; i < 8; i++) {
+            const sx = x + 2 + i * 6;
+            const sh = 4 + ((seed + i*13) % 4);
+            ctx.fillStyle = i % 2 ? "#54a560" : "#7fc888";
+            ctx.fillRect(sx, y - sh, 2, sh);
           }
-        } else if (level.id === 1) {
-          // grass tufts
-          ctx.fillStyle = "#5fa867";
-          for (let i = 0; i < 4; i++) {
-            const sx = x + 6 + i * 11;
-            ctx.fillRect(sx, y - 2, 3, 4);
+          // occasional flower
+          if (seed % 7 === 0) {
+            const fx = x + ((seed*5) % 36) + 6;
+            ctx.fillStyle = "#ffd84c";
+            ctx.beginPath(); ctx.arc(fx, y - 5, 2.5, 0, 6.283); ctx.fill();
+            ctx.fillStyle = "#ff6b9d";
+            for (let k = 0; k < 5; k++) {
+              const a = k * (Math.PI*2/5);
+              ctx.beginPath();
+              ctx.arc(fx + Math.cos(a)*2.5, y - 5 + Math.sin(a)*2.5, 1.6, 0, 6.283);
+              ctx.fill();
+            }
+          }
+        } else if (level.id === 2) {
+          // crystal facets — diamond shapes on top
+          ctx.fillStyle = "rgba(255,255,255,0.55)";
+          for (let i = 0; i < 3; i++) {
+            const sx = x + 6 + i * 14;
+            const sy = y + 4 + ((seed + i) % 3);
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - 3);
+            ctx.lineTo(sx + 3, sy);
+            ctx.lineTo(sx, sy + 3);
+            ctx.lineTo(sx - 3, sy);
+            ctx.closePath(); ctx.fill();
+          }
+          // animated sparkle
+          if ((seed % 9) === Math.floor(timeAccum * 2) % 9) {
+            const sx = x + ((seed*3) % 36) + 6;
+            ctx.fillStyle = "rgba(255,255,255,0.9)";
+            ctx.beginPath(); ctx.arc(sx, y + 5, 1.5, 0, 6.283); ctx.fill();
           }
         } else if (level.id === 3) {
-          // cloud puffs
-          ctx.fillStyle = "rgba(255,255,255,0.85)";
+          // pillowy cloud top
+          ctx.fillStyle = "rgba(255,255,255,0.95)";
           ctx.beginPath();
-          ctx.arc(x + 10, y + 4, 8, 0, 6.283); ctx.arc(x + 22, y + 2, 10, 0, 6.283); ctx.arc(x + 38, y + 5, 8, 0, 6.283);
+          ctx.arc(x + 8,  y + 3, 8, 0, 6.283);
+          ctx.arc(x + 20, y + 1, 10, 0, 6.283);
+          ctx.arc(x + 34, y + 3, 9, 0, 6.283);
+          ctx.arc(x + 44, y + 5, 7, 0, 6.283);
+          ctx.fill();
+          // shadow underneath cloud puffs
+          ctx.fillStyle = "rgba(155,179,224,0.4)";
+          ctx.beginPath();
+          ctx.arc(x + 14, y + 12, 6, 0, 6.283);
+          ctx.arc(x + 30, y + 14, 7, 0, 6.283);
           ctx.fill();
         }
       }
 
-      // subtle outline
-      ctx.fillStyle = "rgba(0,0,0,0.08)";
-      ctx.fillRect(x, y + TILE - 3, TILE, 3);
+      // ── Edge bevels ──
+      if (isLeftEdge) {
+        const lg = ctx.createLinearGradient(x, 0, x + 6, 0);
+        lg.addColorStop(0, "rgba(0,0,0,0.25)");
+        lg.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = lg;
+        ctx.fillRect(x, y + (isTop ? 14 : 0), 6, TILE - (isTop ? 14 : 0));
+      }
+      if (isRightEdge) {
+        const rg = ctx.createLinearGradient(x + TILE - 6, 0, x + TILE, 0);
+        rg.addColorStop(0, "rgba(0,0,0,0)");
+        rg.addColorStop(1, "rgba(0,0,0,0.28)");
+        ctx.fillStyle = rg;
+        ctx.fillRect(x + TILE - 6, y + (isTop ? 14 : 0), 6, TILE - (isTop ? 14 : 0));
+      }
+      // ── Bottom shadow ──
+      if (isBottom) {
+        ctx.fillStyle = "rgba(0,0,0,0.32)";
+        ctx.fillRect(x, y + TILE - 4, TILE, 4);
+      }
     }
   }
 }
@@ -967,93 +1177,252 @@ function drawEntities() {
 }
 
 function drawWalker(x, y, e) {
-  // Friendly little mushroom-ish baddie
+  // Spiky angry guy (red round body with spike crown + grumpy face).
   const t = e.t;
-  const bob = Math.sin(t * 8) * 2;
-  // body
-  ctx.fillStyle = "#ff5d8f";
+  const bob = Math.sin(t * 8) * 1.5;
+  const cx = x + e.w/2, cy = y + e.h/2 + bob;
+  const dir = e.vx < 0 ? -1 : 1;
+
+  // shadow
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
   ctx.beginPath();
-  ctx.ellipse(x + e.w/2, y + e.h/2 + 4 + bob, e.w/2, e.h/2 - 2, 0, 0, 6.283);
+  ctx.ellipse(cx, y + e.h + 2, e.w/2 - 2, 3.5, 0, 0, 6.283);
   ctx.fill();
-  // cap
-  ctx.fillStyle = "#b9264b";
+
+  // spikes around the top half (8 spikes)
+  ctx.fillStyle = "#8a0e2a";
+  for (let i = 0; i < 8; i++) {
+    const a = -Math.PI/2 + (i - 3.5) * 0.35;
+    const r1 = e.w/2 - 2;
+    const r2 = e.w/2 + 8;
+    const px1 = cx + Math.cos(a - 0.07) * r1;
+    const py1 = cy + Math.sin(a - 0.07) * r1;
+    const px2 = cx + Math.cos(a + 0.07) * r1;
+    const py2 = cy + Math.sin(a + 0.07) * r1;
+    const px3 = cx + Math.cos(a) * r2;
+    const py3 = cy + Math.sin(a) * r2;
+    ctx.beginPath();
+    ctx.moveTo(px1, py1); ctx.lineTo(px3, py3); ctx.lineTo(px2, py2);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // body — radial gradient sphere
+  const bg = ctx.createRadialGradient(cx - 6, cy - 6, 2, cx, cy, e.w/2 + 2);
+  bg.addColorStop(0, "#ff7a8c");
+  bg.addColorStop(0.55, "#e63946");
+  bg.addColorStop(1, "#9a1e2b");
+  ctx.fillStyle = bg;
   ctx.beginPath();
-  ctx.ellipse(x + e.w/2, y + 10 + bob, e.w/2 + 4, 12, 0, Math.PI, 0);
+  ctx.arc(cx, cy, e.w/2, 0, 6.283);
   ctx.fill();
-  // cap spots
+
+  // angry eyebrows
+  ctx.strokeStyle = "#3a0a14";
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(cx - 9, cy - 4); ctx.lineTo(cx - 2, cy - 2);
+  ctx.moveTo(cx + 2, cy - 2); ctx.lineTo(cx + 9, cy - 4);
+  ctx.stroke();
+
+  // eyes (white) — looking in direction of motion
   ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.arc(x + 10, y + 8 + bob, 3, 0, 6.283); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + e.w - 10, y + 10 + bob, 2.5, 0, 6.283); ctx.fill();
-  // eyes
-  const eyeX = e.vx < 0 ? -1 : 1;
+  ctx.beginPath(); ctx.arc(cx - 5, cy + 2, 3, 0, 6.283); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 5, cy + 2, 3, 0, 6.283); ctx.fill();
+  // pupils
+  ctx.fillStyle = "#0a0a0a";
+  ctx.beginPath(); ctx.arc(cx - 5 + dir, cy + 2, 1.6, 0, 6.283); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 5 + dir, cy + 2, 1.6, 0, 6.283); ctx.fill();
+
+  // grumpy frown
+  ctx.strokeStyle = "#3a0a14";
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(cx, cy + 9, 3.5, Math.PI + 0.2, -0.2);
+  ctx.stroke();
+
+  // sharp teeth
   ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.arc(x + e.w/2 - 6, y + 22 + bob, 4, 0, 6.283); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + e.w/2 + 6, y + 22 + bob, 4, 0, 6.283); ctx.fill();
-  ctx.fillStyle = "#1b1230";
-  ctx.beginPath(); ctx.arc(x + e.w/2 - 6 + eyeX, y + 22 + bob, 2, 0, 6.283); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + e.w/2 + 6 + eyeX, y + 22 + bob, 2, 0, 6.283); ctx.fill();
-  // feet
-  ctx.fillStyle = "#8a1a36";
-  ctx.fillRect(x + 6, y + e.h - 4 + bob, 8, 4);
-  ctx.fillRect(x + e.w - 14, y + e.h - 4 + bob, 8, 4);
+  ctx.beginPath();
+  ctx.moveTo(cx - 2, cy + 8); ctx.lineTo(cx - 1, cy + 11); ctx.lineTo(cx, cy + 8); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx + 1, cy + 8); ctx.lineTo(cx + 2, cy + 11); ctx.lineTo(cx + 3, cy + 8); ctx.fill();
+
+  // little stumpy legs
+  ctx.fillStyle = "#5a0a18";
+  const legPhase = Math.sin(t * 12);
+  ctx.fillRect(cx - 9, y + e.h - 5, 5, 5 + legPhase);
+  ctx.fillRect(cx + 4, y + e.h - 5, 5, 5 - legPhase);
 }
 
 function drawFlyer(x, y, e) {
+  // Six-eyed alien drone with flapping wings.
   const t = e.t;
   const flap = Math.sin(t * 14) * 8;
-  // wings
+  const cx = x + e.w/2, cy = y + e.h/2;
+
+  // shadow on ground (approximate — soft circle below)
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 26, 14, 3, 0, 0, 6.283);
+  ctx.fill();
+
+  // wings (back)
   ctx.fillStyle = "#a78bfa";
   ctx.beginPath();
-  ctx.ellipse(x + 4, y + e.h/2 - flap, 14, 8, -0.6, 0, 6.283);
-  ctx.fill();
+  ctx.ellipse(cx - 16, cy - flap - 2, 18, 10, -0.5, 0, 6.283); ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(x + e.w - 4, y + e.h/2 - flap, 14, 8, 0.6, 0, 6.283);
-  ctx.fill();
-  // body
-  ctx.fillStyle = "#4cc9f0";
+  ctx.ellipse(cx + 16, cy - flap - 2, 18, 10, 0.5, 0, 6.283); ctx.fill();
+  // wing veins
+  ctx.strokeStyle = "rgba(255,255,255,0.45)";
+  ctx.lineWidth = 0.8;
   ctx.beginPath();
-  ctx.ellipse(x + e.w/2, y + e.h/2, e.w/2 - 8, e.h/2, 0, 0, 6.283);
+  ctx.moveTo(cx - 4, cy - flap); ctx.lineTo(cx - 28, cy - flap - 8);
+  ctx.moveTo(cx + 4, cy - flap); ctx.lineTo(cx + 28, cy - flap - 8);
+  ctx.stroke();
+
+  // body sphere with highlight
+  const bg = ctx.createRadialGradient(cx - 5, cy - 5, 2, cx, cy, e.w/2);
+  bg.addColorStop(0, "#9beaff");
+  bg.addColorStop(0.55, "#4cc9f0");
+  bg.addColorStop(1, "#1e7fa6");
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, e.w/2 - 4, e.h/2, 0, 0, 6.283);
   ctx.fill();
-  // eye
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.arc(x + e.w/2 - 4, y + e.h/2 - 4, 4, 0, 6.283); ctx.fill();
-  ctx.fillStyle = "#1b1230";
-  ctx.beginPath(); ctx.arc(x + e.w/2 - 5, y + e.h/2 - 4, 2, 0, 6.283); ctx.fill();
+
+  // 6 little eyes in a cluster
+  const eyes = [[-6,-2],[0,-3],[6,-2],[-4,3],[0,4],[4,3]];
+  for (const [dx, dy] of eyes) {
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(cx + dx, cy + dy, 1.6, 0, 6.283); ctx.fill();
+    ctx.fillStyle = "#0a0a0a";
+    ctx.beginPath(); ctx.arc(cx + dx, cy + dy, 0.9, 0, 6.283); ctx.fill();
+  }
+
+  // antenna
+  ctx.strokeStyle = "#1e7fa6";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 12); ctx.lineTo(cx - 2, cy - 17);
+  ctx.stroke();
+  ctx.fillStyle = "#ffd45a";
+  ctx.beginPath(); ctx.arc(cx - 2, cy - 18, 2, 0, 6.283); ctx.fill();
 }
 
 function drawSpring(x, y, e) {
   const sq = 1 - e.charge * 0.5;
-  ctx.fillStyle = "#7bd389";
-  ctx.fillRect(x, y + (e.h * (1 - sq)), e.w, e.h * sq - 6);
-  // coil rings
-  ctx.fillStyle = "#3e7a3e";
-  for (let i = 0; i < 3; i++) {
-    ctx.fillRect(x, y + e.h * (1 - sq) + i * 5, e.w, 2);
+  const visH = e.h * sq;
+  // base plate
+  const baseGrad = ctx.createLinearGradient(0, y + e.h - 6, 0, y + e.h);
+  baseGrad.addColorStop(0, "#a8a8b8");
+  baseGrad.addColorStop(1, "#5e5e72");
+  ctx.fillStyle = baseGrad;
+  ctx.fillRect(x - 3, y + e.h - 6, e.w + 6, 6);
+  // spring coils — alternating bands
+  const topY = y + (e.h - visH);
+  const bandH = (visH - 6) / 4;
+  for (let i = 0; i < 4; i++) {
+    const bandY = topY + i * bandH;
+    const grad = ctx.createLinearGradient(x, bandY, x, bandY + bandH);
+    grad.addColorStop(0, "#bff0c4");
+    grad.addColorStop(0.5, "#7bd389");
+    grad.addColorStop(1, "#3e7a3e");
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, bandY, e.w, bandH);
+    // gap line
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.fillRect(x, bandY + bandH - 1, e.w, 1);
   }
-  ctx.fillStyle = "#a3e0a9";
-  ctx.fillRect(x, y + e.h - 6, e.w, 6);
+  // top plate
+  const topGrad = ctx.createLinearGradient(0, topY - 4, 0, topY + 2);
+  topGrad.addColorStop(0, "#ffd45a");
+  topGrad.addColorStop(1, "#c98a18");
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(x - 3, topY - 4, e.w + 6, 4);
+  // shine on top
+  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  ctx.fillRect(x, topY - 3, e.w * 0.4, 1);
 }
 
 function drawGoal() {
   if (!goal) return;
   const x = goal.x - camera.x;
-  const y = goal.y - camera.y;
-  // pole
-  ctx.fillStyle = "#cfcfdf";
-  ctx.fillRect(x - 3, y, 6, TILE * 2);
+  const baseY = goal.y - camera.y + TILE * 4; // goal.y was 8*TILE; ground top at 9*TILE — castle base sits on ground
+  const groundY = (10 * TILE) - camera.y;
+  const castleH = 88;
+  const cx = x;
+  const towerW = 56;
+  // shadow
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.beginPath();
+  ctx.ellipse(cx, groundY + 2, towerW/2 + 4, 4, 0, 0, 6.283);
+  ctx.fill();
+  // tower body
+  const tg = ctx.createLinearGradient(cx - towerW/2, 0, cx + towerW/2, 0);
+  tg.addColorStop(0, "#7a6a55");
+  tg.addColorStop(0.5, "#c5b18d");
+  tg.addColorStop(1, "#7a6a55");
+  ctx.fillStyle = tg;
+  ctx.fillRect(cx - towerW/2, groundY - castleH, towerW, castleH);
+  // brick lines
+  ctx.fillStyle = "rgba(0,0,0,0.2)";
+  for (let i = 1; i < 6; i++) {
+    ctx.fillRect(cx - towerW/2, groundY - castleH + i * 14, towerW, 1);
+    const stagger = i % 2 === 0 ? 0 : towerW / 2;
+    for (let j = 0; j < 2; j++) {
+      ctx.fillRect(cx - towerW/2 + stagger + j * (towerW/2) - 0.5, groundY - castleH + i * 14 - 7, 1, 7);
+    }
+  }
+  // crenellations on top
+  ctx.fillStyle = "#7a6a55";
+  for (let i = 0; i < 5; i++) {
+    ctx.fillRect(cx - towerW/2 + i * (towerW/5), groundY - castleH - 8, towerW/10, 8);
+  }
+  // door
+  ctx.fillStyle = "#3a2410";
+  ctx.beginPath();
+  ctx.moveTo(cx - 8, groundY);
+  ctx.lineTo(cx - 8, groundY - 16);
+  ctx.quadraticCurveTo(cx, groundY - 22, cx + 8, groundY - 16);
+  ctx.lineTo(cx + 8, groundY);
+  ctx.closePath(); ctx.fill();
+  // door highlight
+  ctx.strokeStyle = "#8b5a2b";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, groundY); ctx.lineTo(cx, groundY - 16);
+  ctx.stroke();
+  // window
+  ctx.fillStyle = "#ffd45a";
+  ctx.fillRect(cx - 4, groundY - castleH + 18, 8, 8);
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
+  ctx.fillRect(cx - 0.5, groundY - castleH + 18, 1, 8);
+  ctx.fillRect(cx - 4, groundY - castleH + 22, 8, 1);
+  // flagpole
+  ctx.fillStyle = "#bfbfd0";
+  ctx.fillRect(cx - 1, groundY - castleH - 36, 2, 28);
   // flag
   const wave = Math.sin(timeAccum * 6) * 4;
-  ctx.fillStyle = goal.reached ? "#7bd389" : "#ff5d8f";
+  const flagColor = goal.reached ? "#7bd389" : "#ff3b6e";
+  const flagGrad = ctx.createLinearGradient(cx, 0, cx + 36, 0);
+  flagGrad.addColorStop(0, flagColor);
+  flagGrad.addColorStop(1, shade(flagColor, -30));
+  ctx.fillStyle = flagGrad;
   ctx.beginPath();
-  ctx.moveTo(x + 3, y + 8);
-  ctx.lineTo(x + 56 + wave, y + 18);
-  ctx.lineTo(x + 3, y + 28);
-  ctx.closePath();
-  ctx.fill();
-  // star on flag
+  ctx.moveTo(cx + 1, groundY - castleH - 36);
+  ctx.quadraticCurveTo(cx + 18 + wave, groundY - castleH - 32, cx + 36, groundY - castleH - 26);
+  ctx.quadraticCurveTo(cx + 18 + wave, groundY - castleH - 22, cx + 1, groundY - castleH - 16);
+  ctx.closePath(); ctx.fill();
+  // flag star
   ctx.fillStyle = "#fff";
-  ctx.font = "bold 14px sans-serif";
-  ctx.fillText("★", x + 18, y + 24);
+  ctx.font = "bold 11px sans-serif";
+  ctx.fillText("★", cx + 12, groundY - castleH - 24);
+  // pole top ball
+  ctx.fillStyle = "#ffd45a";
+  ctx.beginPath();
+  ctx.arc(cx, groundY - castleH - 38, 2.5, 0, 6.283);
+  ctx.fill();
 }
 
 function drawPlayer() {
@@ -1061,94 +1430,258 @@ function drawPlayer() {
   const y = player.y - camera.y;
   if (player.invuln > 0 && Math.floor(player.invuln * 14) % 2 === 0) return;
 
+  // ground shadow (drawn in world space so it doesn't flip with facing)
+  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  ctx.beginPath();
+  ctx.ellipse(x + player.w/2, y + player.h - 1, 16, 4.5, 0, 0, 6.283);
+  ctx.fill();
+
   ctx.save();
-  ctx.translate(x + player.w/2, y + player.h/2);
+  // anchor at feet, mirror by facing
+  ctx.translate(x + player.w/2, y + player.h);
   ctx.scale(player.facing, 1);
-  ctx.translate(-player.w/2, -player.h/2);
 
   const a = player.anim;
-  let legSwing = 0, armSwing = 0, bodyTilt = 0, squash = 1;
+  let legL = 0, legR = 0, armL = 0, armR = 0, bodyBob = 0;
   if (player.state === "run") {
-    legSwing = Math.sin(a) * 10;
-    armSwing = Math.sin(a + Math.PI) * 8;
-    bodyTilt = Math.abs(Math.sin(a * 2)) * 2;
+    legL = Math.sin(a) * 9;
+    legR = Math.sin(a + Math.PI) * 9;
+    armL = Math.sin(a + Math.PI) * 11;
+    armR = Math.sin(a) * 11;
+    bodyBob = Math.abs(Math.sin(a)) * 1.8;
   } else if (player.state === "jump") {
-    legSwing = 6; armSwing = -6; squash = 1.08;
+    legL = legR = -6;
+    armL = armR = -12;
   } else if (player.state === "fall") {
-    legSwing = -4; armSwing = 8;
+    legL = legR = 5;
+    armL = armR = 9;
   } else {
-    legSwing = Math.sin(timeAccum * 3) * 1;
+    bodyBob = Math.sin(timeAccum * 2) * 0.6;
   }
 
-  // shadow
-  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  // ── palette ──
+  const skin = "#f3c9a8", skinHi = "#ffe1c4", skinShade = "#c8956c";
+  const shirt = "#e63946", shirtHi = "#ff6b6b", shirtShade = "#9a1a28";
+  const pants = "#1f3a68", pantsShade = "#0c1f3d";
+  const hair = "#3a2110", hairHi = "#6b3f1f";
+  const shoe = "#fafafa", shoeShade = "#a8a8b0";
+  const cap = "#c8202c", capHi = "#ff5d6c", capShade = "#7a0e16";
+
+  // ── LEGS ── (y is negative going up from feet)
+  function drawLeg(offX, sw) {
+    // thigh
+    ctx.fillStyle = pants;
+    ctx.beginPath();
+    ctx.ellipse(offX, -10 + sw * 0.05, 4.2, 8, 0, 0, 6.283);
+    ctx.fill();
+    // knee/shin shadow
+    ctx.fillStyle = pantsShade;
+    ctx.fillRect(offX - 3.5, -8 + sw * 0.5, 7, 6);
+    // shoe
+    ctx.fillStyle = shoe;
+    ctx.beginPath();
+    ctx.ellipse(offX + sw * 0.18, -1 + sw * 0.4, 6, 3, 0, 0, 6.283);
+    ctx.fill();
+    // shoe stripe (red accent matching cap)
+    ctx.fillStyle = cap;
+    ctx.fillRect(offX - 5 + sw * 0.18, -2 + sw * 0.4, 11, 1.2);
+    // shoe sole shadow
+    ctx.fillStyle = shoeShade;
+    ctx.beginPath();
+    ctx.ellipse(offX + sw * 0.18, 0 + sw * 0.4, 6, 1, 0, 0, 6.283);
+    ctx.fill();
+  }
+  drawLeg(-4, legL);
+  drawLeg(4, legR);
+
+  // ── TORSO ──
+  const torsoY = -19 + bodyBob;
+  // base (rounded shirt)
+  const torsoGrad = ctx.createRadialGradient(-4, torsoY - 3, 1, 0, torsoY, 12);
+  torsoGrad.addColorStop(0, shirtHi);
+  torsoGrad.addColorStop(0.55, shirt);
+  torsoGrad.addColorStop(1, shirtShade);
+  ctx.fillStyle = torsoGrad;
   ctx.beginPath();
-  ctx.ellipse(player.w/2, player.h - 1, 14, 4, 0, 0, 6.283);
+  ctx.ellipse(0, torsoY, 11, 10, 0, 0, 6.283);
   ctx.fill();
-
-  const cx = player.w/2;
-  const top = bodyTilt;
-
-  // legs
-  ctx.fillStyle = "#3a2f8a"; // shorts
-  ctx.fillRect(cx - 9, 30 + top, 7, 14 + legSwing * 0.2);
-  ctx.fillRect(cx + 2, 30 + top, 7, 14 - legSwing * 0.2);
-  // shoes
-  ctx.fillStyle = "#1b1230";
-  ctx.fillRect(cx - 10, 42 + top + legSwing * 0.2, 9, 4);
-  ctx.fillRect(cx + 1, 42 + top - legSwing * 0.2, 9, 4);
-
-  // torso (yellow t-shirt)
-  ctx.fillStyle = "#ffd45a";
-  ctx.fillRect(cx - 10, 18 + top, 20, 14);
+  // sleeve seam
+  ctx.fillStyle = "rgba(0,0,0,0.2)";
+  ctx.fillRect(-11, torsoY - 3, 2, 6);
+  ctx.fillRect(9, torsoY - 3, 2, 6);
   // chest star
-  ctx.fillStyle = "#ff5d8f";
-  ctx.font = "bold 10px sans-serif";
-  ctx.fillText("★", cx - 4, 28 + top);
-
-  // arms
-  ctx.fillStyle = "#ffcaa3"; // skin
-  ctx.fillRect(cx - 13, 20 + top + armSwing * 0.3, 4, 10);
-  ctx.fillRect(cx + 9, 20 + top - armSwing * 0.3, 4, 10);
-
-  // head (skin)
-  ctx.fillStyle = "#ffcaa3";
-  ctx.beginPath();
-  ctx.arc(cx, 10 + top, 10, 0, 6.283);
+  ctx.fillStyle = "#ffd45a";
+  drawStar(0, torsoY + 1, 1.8, 4, 5);
   ctx.fill();
-
-  // hair
-  ctx.fillStyle = "#5b3a1f";
-  ctx.beginPath();
-  ctx.arc(cx, 8 + top, 10, Math.PI * 1.1, Math.PI * 1.95);
-  ctx.fill();
-  ctx.fillRect(cx + 4, 4 + top, 7, 4); // bangs flop
-
-  // eye
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.arc(cx + 3, 10 + top, 2.5, 0, 6.283); ctx.fill();
-  ctx.fillStyle = "#1b1230";
-  ctx.beginPath(); ctx.arc(cx + 4, 10 + top, 1.5, 0, 6.283); ctx.fill();
-  // smile
-  ctx.strokeStyle = "#7a3a20";
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.arc(cx + 2, 14 + top, 2, 0, Math.PI);
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.lineWidth = 0.6;
   ctx.stroke();
 
+  // ── ARMS ──
+  function drawArm(side, sw) {
+    const baseX = side * 9.5;
+    // upper arm (shirt sleeve)
+    ctx.fillStyle = shirt;
+    ctx.beginPath();
+    ctx.ellipse(baseX, torsoY + 1, 3.2, 5, side * sw * 0.04, 0, 6.283);
+    ctx.fill();
+    // forearm — skin
+    const fx = baseX + side * 1.5;
+    const fy = torsoY + 7 + Math.abs(sw) * 0.15;
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.ellipse(fx, fy, 2.8, 4, 0, 0, 6.283);
+    ctx.fill();
+    // forearm shading
+    ctx.fillStyle = skinShade;
+    ctx.beginPath();
+    ctx.ellipse(fx + 1, fy + 1, 1.8, 3.5, 0, 0, 6.283);
+    ctx.fill();
+    // hand (fist)
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(fx, fy + 5, 2.2, 0, 6.283);
+    ctx.fill();
+    ctx.fillStyle = skinShade;
+    ctx.beginPath();
+    ctx.arc(fx + 0.6, fy + 5.6, 1.4, 0, 6.283);
+    ctx.fill();
+  }
+  drawArm(-1, armL);
+  drawArm(1, armR);
+
+  // ── HEAD ──
+  const headY = -36 + bodyBob;
+  // neck
+  ctx.fillStyle = skinShade;
+  ctx.fillRect(-2, torsoY - 9, 4, 4);
+  // head sphere
+  const headGrad = ctx.createRadialGradient(-3, headY - 3, 1, 0, headY, 10);
+  headGrad.addColorStop(0, skinHi);
+  headGrad.addColorStop(0.55, skin);
+  headGrad.addColorStop(1, skinShade);
+  ctx.fillStyle = headGrad;
+  ctx.beginPath();
+  ctx.arc(0, headY, 9, 0, 6.283);
+  ctx.fill();
+  // ear
+  ctx.fillStyle = skinShade;
+  ctx.beginPath();
+  ctx.ellipse(-7.5, headY + 1, 1.5, 2.5, 0, 0, 6.283);
+  ctx.fill();
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.beginPath();
+  ctx.arc(-7.5, headY + 1, 0.8, 0, 6.283);
+  ctx.fill();
+
+  // hair tuft visible under cap (forehead bangs)
+  ctx.fillStyle = hair;
+  ctx.beginPath();
+  ctx.arc(2, headY - 5, 3, 0, 6.283);
+  ctx.fill();
+  ctx.fillStyle = hairHi;
+  ctx.fillRect(4, headY - 5, 3, 2);
+
+  // ── BASEBALL CAP ──
+  // dome
+  const capGrad = ctx.createLinearGradient(0, headY - 12, 0, headY - 2);
+  capGrad.addColorStop(0, capHi);
+  capGrad.addColorStop(0.5, cap);
+  capGrad.addColorStop(1, capShade);
+  ctx.fillStyle = capGrad;
+  ctx.beginPath();
+  ctx.arc(0, headY - 3, 9.5, Math.PI, 0);
+  ctx.lineTo(9.5, headY - 2);
+  ctx.lineTo(-9.5, headY - 2);
+  ctx.closePath();
+  ctx.fill();
+  // cap stitch line
+  ctx.strokeStyle = "rgba(0,0,0,0.3)";
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(0, headY - 12); ctx.lineTo(0, headY - 3);
+  ctx.stroke();
+  // brim (sticks out front)
+  ctx.fillStyle = capShade;
+  ctx.beginPath();
+  ctx.ellipse(5, headY - 3, 8, 2, 0, 0, 6.283);
+  ctx.fill();
+  // brim highlight
+  ctx.fillStyle = capHi;
+  ctx.beginPath();
+  ctx.ellipse(5, headY - 4, 7, 1, 0, 0, 6.283);
+  ctx.fill();
+  // cap logo (yellow star)
+  ctx.fillStyle = "#ffd45a";
+  drawStar(2, headY - 7, 1, 2, 5);
+  ctx.fill();
+
+  // ── FACE ──
+  // eye
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.ellipse(3, headY + 1, 2.6, 3.2, 0, 0, 6.283);
+  ctx.fill();
+  // iris (green)
+  ctx.fillStyle = "#3d8b54";
+  ctx.beginPath(); ctx.arc(3.5, headY + 1, 1.9, 0, 6.283); ctx.fill();
+  // pupil
+  ctx.fillStyle = "#0a0a14";
+  ctx.beginPath(); ctx.arc(3.5, headY + 1, 1, 0, 6.283); ctx.fill();
+  // eye shine
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(2.7, headY, 0.7, 0, 6.283); ctx.fill();
+  // eyebrow (peek under cap)
+  ctx.strokeStyle = hair;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(1, headY - 3); ctx.lineTo(5.5, headY - 2.5);
+  ctx.stroke();
+  // mouth — smile
+  ctx.strokeStyle = "#6e2818";
+  ctx.lineWidth = 1.1;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.arc(2, headY + 4, 2.6, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+  // tooth glint
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(2, headY + 5, 1, 1);
   // cheek blush
-  ctx.fillStyle = "rgba(255,93,143,0.45)";
-  ctx.beginPath(); ctx.arc(cx + 6, 13 + top, 1.5, 0, 6.283); ctx.fill();
+  ctx.fillStyle = "rgba(255,93,143,0.5)";
+  ctx.beginPath();
+  ctx.ellipse(5, headY + 3, 2, 1.3, 0, 0, 6.283);
+  ctx.fill();
 
   ctx.restore();
 
-  // speed trail when running fast
+  // ── SPEED TRAIL ── (in world space, behind player)
   if (Math.abs(player.vx) > 360) {
-    ctx.fillStyle = "rgba(255,212,90,0.25)";
-    for (let i = 1; i <= 4; i++) {
-      ctx.fillRect(x - player.facing * i * 5, y + 8, 8, 28);
+    ctx.save();
+    for (let i = 1; i <= 6; i++) {
+      ctx.globalAlpha = 0.18 - i * 0.025;
+      const grd = ctx.createLinearGradient(0, y, 0, y + player.h);
+      grd.addColorStop(0, "#ffd45a");
+      grd.addColorStop(1, "#ff5d8f");
+      ctx.fillStyle = grd;
+      ctx.fillRect(x - player.facing * i * 7, y + 8, 12, player.h - 12);
     }
+    ctx.restore();
   }
+}
+
+function drawStar(cx, cy, r1, r2, points) {
+  let rot = -Math.PI/2;
+  const step = Math.PI / points;
+  ctx.beginPath();
+  ctx.moveTo(cx + Math.cos(rot) * r2, cy + Math.sin(rot) * r2);
+  for (let i = 0; i < points; i++) {
+    rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * r1, cy + Math.sin(rot) * r1);
+    rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * r2, cy + Math.sin(rot) * r2);
+  }
+  ctx.closePath();
 }
 
 function drawParticles() {
