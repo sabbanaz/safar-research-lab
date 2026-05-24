@@ -348,9 +348,9 @@ const LEVELS = [
       "........................................*...==*=....*..................................................O................................................................................................",
       "..............................Q.......====........====...........Q......................*.*.................................................Q............................................Q..............",
       "..P...*.*.*..e.*..*..*...*..*......e......*.....*......e..s...*.....*......e......*..*..s...*..e..............*....e.........*......*..e.........s..*......*....e.........*....*....e.........*......G..",
-      "##########################################################....####################################...........###########...################################....#########################################",
-      "##########################################################....####################################...........###########...################################....#########################################",
-      "##########################################################....####################################...........###########...################################....#########################################",
+      "##########################################################....##########################################################...################################....#########################################",
+      "##########################################################....##########################################################...################################....#########################################",
+      "##########################################################....##########################################################...################################....#########################################",
     ]
   },
   {
@@ -398,9 +398,9 @@ const LEVELS = [
       "...........................======..................................======.................O................======..................................======...............................................",
       "..................................Q.....................................Q.....................................Q.....................................Q.....................................Q.............",
       "..P............e........*.......*..*.......s.........e.......***.................s..................*.................*s*........e........*.......*..*.......s.........e.......***...................G..",
-      "########....######....#####....######....#####....######....#####....######....#####..............#####....######....#####....######....#####....######....#####....######....#####....#################",
-      "########....######....#####....######....#####....######....#####....######....#####..............#####....######....#####....######....#####....######....#####....######....#####....#################",
-      "########....######....#####....######....#####....######....#####....######....#####..............#####....######....#####....######....#####....######....#####....######....#####....#################",
+      "########....######....#####....######....#####....######....#####....######....#####..###########.#####....######....#####....######....#####....######....#####....######....#####....#################",
+      "########....######....#####....######....#####....######....#####....######....#####..###########.#####....######....#####....######....#####....######....#####....######....#####....#################",
+      "########....######....#####....######....#####....######....#####....######....#####..###########.#####....######....#####....######....#####....######....#####....######....#####....#################",
     ]
   }
 ];
@@ -459,7 +459,13 @@ function loadLevel(idx) {
         entities.push({ kind: "spring", x: px + 6, y: py + TILE - 20, w: TILE - 12, h: 20, charge: 0 });
         tiles[y][x] = ".";
       } else if (ch === "O") {
-        entities.push({ kind: "loop", cx: px + TILE/2, cy: py + TILE/2, r: 72 });
+        // Loop bottom sits on ground. Find ground row below and size loop so bottom = ground top.
+        let loopGroundY = (y + 2) * TILE;
+        for (let gy = y + 1; gy < tiles.length; gy++) {
+          if (isSolid(x, gy)) { loopGroundY = gy * TILE; break; }
+        }
+        const loopR = 90;
+        entities.push({ kind: "loop", cx: px + TILE/2, cy: loopGroundY - loopR, r: loopR });
         tiles[y][x] = ".";
       } else if (ch === "G") {
         goal = { x: px + TILE/2, y: py, reached: false };
@@ -923,19 +929,19 @@ function updateEntities(dt) {
           { color: colors[e.subtype], life: 0.7, speed: 300, vy: -160, r: 3 });
       }
     } else if (e.kind === "loop") {
-      // Entry detection: player running fast into the left side of the loop
-      if (!player.looping) {
+      // Entry: player running fast across the loop's left-side ground-level entry
+      if (!player.looping && player.onGround) {
         const entryX = e.cx - e.r;
-        const entryY = e.cy + e.r;
+        const groundY = e.cy + e.r;  // bottom of circle = ground top
         const dx = (player.x + player.w) - entryX;
-        const dy = (player.y + player.h) - entryY;
-        if (player.vx > 340 && dx > -10 && dx < 30 && Math.abs(dy) < 30) {
+        const dy = (player.y + player.h) - groundY;
+        if (player.vx > 300 && dx > -15 && dx < 40 && Math.abs(dy) < 40) {
           player.looping = true;
           player.loopT = 0;
           player.loopCx = e.cx;
           player.loopCy = e.cy;
           player.loopR = e.r;
-          player.loopSpeed = Math.max(4.5, player.vx / e.r);
+          player.loopSpeed = Math.max(4.0, player.vx / e.r);
           player.vx = 0; player.vy = 0;
           spawnParticles(player.x + player.w, player.y + player.h/2, 12,
             { color: "#ffd45a", life: 0.4, speed: 200, vy: -60 });
@@ -1468,39 +1474,92 @@ function drawLoopTrack(e) {
   const cx = e.cx - camera.x;
   const cy = e.cy - camera.y;
   const r = e.r;
-  const p = level.palette;
-  const trackW = 18;
-  // drop shadow under track
-  ctx.fillStyle = "rgba(0,0,0,0.2)";
-  ctx.beginPath(); ctx.arc(cx + 3, cy + 3, r + trackW/2 + 2, 0, 6.283); ctx.fill();
-  // outer edge
-  ctx.strokeStyle = shade(p.groundShade, -20);
-  ctx.lineWidth = trackW + 4;
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.stroke();
-  // track body gradient
-  ctx.strokeStyle = p.groundBody;
-  ctx.lineWidth = trackW;
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.stroke();
-  // highlight along inner edge
-  ctx.strokeStyle = shade(p.groundTop, 0);
-  ctx.lineWidth = 5;
-  ctx.beginPath(); ctx.arc(cx, cy, r - trackW/2 + 2, 0, 6.283); ctx.stroke();
-  // surface detail (ticks around the loop)
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
-  for (let i = 0; i < 16; i++) {
-    const a = i * Math.PI / 8;
-    const ix = cx + (r - trackW/2 + 1) * Math.cos(a);
-    const iy = cy + (r - trackW/2 + 1) * Math.sin(a);
-    ctx.fillRect(ix - 1, iy - 1, 2, 2);
-  }
-  // arrow hint at entry (left side)
-  ctx.fillStyle = "rgba(255,212,90,0.7)";
-  const ax = cx - r - 20, ay = cy + r;
+  const pad = 28;      // extra wall thickness around the circle
+  const trackW = 16;   // running surface thickness
+  const blockL = cx - r - pad;
+  const blockR = cx + r + pad;
+  const blockT = cy - r - pad;
+  const blockB = cy + r;  // bottom = ground level
+  const checkSize = 16;
+  const brown1 = "#8B6914";
+  const brown2 = "#C49A3C";
+
+  ctx.save();
+
+  // ── 1. Shadow behind the block ──
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.fillRect(blockL + 6, blockT + 6, blockR - blockL, blockB - blockT);
+
+  // ── 2. Checkered block (clip out the circle center for sky) ──
+  ctx.save();
   ctx.beginPath();
-  ctx.moveTo(ax, ay - 5);
-  ctx.lineTo(ax + 12, ay);
-  ctx.lineTo(ax, ay + 5);
+  // Outer rect
+  ctx.rect(blockL, blockT, blockR - blockL, blockB - blockT);
+  // Inner circle cutout (counter-clockwise for hole)
+  ctx.arc(cx, cy, r - trackW, 0, 6.283, true);
+  ctx.clip();
+  // Draw checkerboard
+  for (let by = blockT; by < blockB; by += checkSize) {
+    for (let bx = blockL; bx < blockR; bx += checkSize) {
+      const ci = Math.floor((bx - blockL) / checkSize);
+      const cj = Math.floor((by - blockT) / checkSize);
+      ctx.fillStyle = (ci + cj) % 2 === 0 ? brown1 : brown2;
+      ctx.fillRect(bx, by, checkSize, checkSize);
+    }
+  }
+  // Darken the inner ring for depth
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 6.283);
+  ctx.arc(cx, cy, r - trackW, 0, 6.283, true);
+  ctx.fill();
+  ctx.restore();
+
+  // ── 3. Track surface (inner ring where the player runs) ──
+  ctx.strokeStyle = "#B8892A";
+  ctx.lineWidth = trackW;
+  ctx.beginPath(); ctx.arc(cx, cy, r - trackW/2, 0, 6.283); ctx.stroke();
+  // Highlight on inner edge of track
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r - trackW + 1, 0, 6.283); ctx.stroke();
+  // Shadow on outer edge of track
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r - 1, 0, 6.283); ctx.stroke();
+
+  // ── 4. Block edges — darker outline ──
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(blockL, blockT, blockR - blockL, blockB - blockT);
+
+  // ── 5. Grass on top of the block ──
+  ctx.fillStyle = "#5fa867";
+  ctx.fillRect(blockL, blockT - 6, blockR - blockL, 8);
+  ctx.fillStyle = "#7bd389";
+  ctx.fillRect(blockL, blockT - 8, blockR - blockL, 4);
+  // Individual grass blades
+  for (let i = 0; i < (blockR - blockL) / 6; i++) {
+    const gx = blockL + i * 6 + Math.random() * 2;
+    const gh = 4 + (i * 13 % 5);
+    ctx.fillStyle = i % 2 ? "#54a560" : "#8fd89a";
+    ctx.fillRect(gx, blockT - 8 - gh, 2, gh);
+  }
+
+  // ── 6. Entry ramp hints (small arrows on each side at ground level) ──
+  ctx.fillStyle = "rgba(255,212,90,0.75)";
+  // Left arrow
+  const ax = blockL - 16, ay = blockB - 10;
+  ctx.beginPath();
+  ctx.moveTo(ax, ay - 6); ctx.lineTo(ax + 14, ay); ctx.lineTo(ax, ay + 6);
   ctx.closePath(); ctx.fill();
+  // Right arrow
+  const ax2 = blockR + 16;
+  ctx.beginPath();
+  ctx.moveTo(ax2, ay - 6); ctx.lineTo(ax2 - 14, ay); ctx.lineTo(ax2, ay + 6);
+  ctx.closePath(); ctx.fill();
+
+  ctx.restore();
 }
 
 function drawPowerUp(x, y, e) {
@@ -1893,199 +1952,306 @@ function drawPlayer() {
     bodyBob = Math.sin(timeAccum * 2) * 0.6;
   }
 
-  // ── palette ──
-  const skin = "#f3c9a8", skinHi = "#ffe1c4", skinShade = "#c8956c";
-  const shirt = "#e63946", shirtHi = "#ff6b6b", shirtShade = "#9a1a28";
-  const pants = "#1f3a68", pantsShade = "#0c1f3d";
-  const hair = "#3a2110", hairHi = "#6b3f1f";
-  const shoe = "#fafafa", shoeShade = "#a8a8b0";
-  const cap = "#c8202c", capHi = "#ff5d6c", capShade = "#7a0e16";
+  // ── Knuckles palette ──
+  const red = "#dc1c2c", redHi = "#ff4454", redShade = "#8b0e18", redDark = "#5a0a10";
+  const muzzle = "#f5c9a0", muzzleHi = "#ffe2c8", muzzleShade = "#c89868";
+  const glove = "#f8f8f8", gloveShade = "#c0c0c8", gloveDark = "#888890";
+  const shoRed = "#dc1c2c", shoYellow = "#f0d020", shoGreen = "#28a048", shoGray = "#808890";
 
-  // ── LEGS ── (y is negative going up from feet)
+  // ── LEGS (shoes) ──
   function drawLeg(offX, sw) {
-    // thigh
-    ctx.fillStyle = pants;
+    // red leg / shin
+    const legGrad = ctx.createRadialGradient(offX, -12 + sw * 0.05, 1, offX, -10 + sw * 0.05, 6);
+    legGrad.addColorStop(0, redHi);
+    legGrad.addColorStop(0.6, red);
+    legGrad.addColorStop(1, redShade);
+    ctx.fillStyle = legGrad;
     ctx.beginPath();
-    ctx.ellipse(offX, -10 + sw * 0.05, 4.2, 8, 0, 0, 6.283);
+    ctx.ellipse(offX, -12 + sw * 0.05, 5, 7.5, 0, 0, 6.283);
     ctx.fill();
-    // knee/shin shadow
-    ctx.fillStyle = pantsShade;
-    ctx.fillRect(offX - 3.5, -8 + sw * 0.5, 7, 6);
-    // shoe
-    ctx.fillStyle = shoe;
+
+    // green sock cuff
+    ctx.fillStyle = shoGreen;
     ctx.beginPath();
-    ctx.ellipse(offX + sw * 0.18, -1 + sw * 0.4, 6, 3, 0, 0, 6.283);
+    ctx.ellipse(offX, -5 + sw * 0.3, 5.5, 2.5, 0, 0, 6.283);
     ctx.fill();
-    // shoe stripe (red accent matching cap)
-    ctx.fillStyle = cap;
-    ctx.fillRect(offX - 5 + sw * 0.18, -2 + sw * 0.4, 11, 1.2);
-    // shoe sole shadow
-    ctx.fillStyle = shoeShade;
+    ctx.fillStyle = "#1e7838";
     ctx.beginPath();
-    ctx.ellipse(offX + sw * 0.18, 0 + sw * 0.4, 6, 1, 0, 0, 6.283);
+    ctx.ellipse(offX, -4 + sw * 0.3, 5.5, 1.2, 0, 0, 6.283);
+    ctx.fill();
+
+    // shoe body (red+yellow)
+    const shoeX = offX + sw * 0.2;
+    const shoeY = -1 + sw * 0.4;
+    // main red shoe
+    const shoeGrad = ctx.createRadialGradient(shoeX - 1, shoeY - 2, 1, shoeX, shoeY, 7);
+    shoeGrad.addColorStop(0, redHi);
+    shoeGrad.addColorStop(0.5, shoRed);
+    shoeGrad.addColorStop(1, redShade);
+    ctx.fillStyle = shoeGrad;
+    ctx.beginPath();
+    ctx.ellipse(shoeX, shoeY, 7, 3.5, 0, 0, 6.283);
+    ctx.fill();
+    // yellow stripe across shoe
+    ctx.fillStyle = shoYellow;
+    ctx.beginPath();
+    ctx.moveTo(shoeX - 6, shoeY - 0.5);
+    ctx.lineTo(shoeX + 6, shoeY - 0.5);
+    ctx.lineTo(shoeX + 5.5, shoeY + 1);
+    ctx.lineTo(shoeX - 5.5, shoeY + 1);
+    ctx.closePath();
+    ctx.fill();
+    // gray metal sole
+    ctx.fillStyle = shoGray;
+    ctx.beginPath();
+    ctx.ellipse(shoeX, shoeY + 2.5, 7, 1.5, 0, 0, 6.283);
+    ctx.fill();
+    ctx.fillStyle = "#606068";
+    ctx.beginPath();
+    ctx.ellipse(shoeX, shoeY + 3, 6, 0.8, 0, 0, 6.283);
     ctx.fill();
   }
-  drawLeg(-4, legL);
-  drawLeg(4, legR);
+  drawLeg(-5, legL);
+  drawLeg(5, legR);
 
   // ── TORSO ──
-  const torsoY = -19 + bodyBob;
-  // base (rounded shirt)
-  const torsoGrad = ctx.createRadialGradient(-4, torsoY - 3, 1, 0, torsoY, 12);
-  torsoGrad.addColorStop(0, shirtHi);
-  torsoGrad.addColorStop(0.55, shirt);
-  torsoGrad.addColorStop(1, shirtShade);
+  const torsoY = -22 + bodyBob;
+  // main red body
+  const torsoGrad = ctx.createRadialGradient(-3, torsoY - 4, 1, 0, torsoY, 14);
+  torsoGrad.addColorStop(0, redHi);
+  torsoGrad.addColorStop(0.5, red);
+  torsoGrad.addColorStop(1, redShade);
   ctx.fillStyle = torsoGrad;
   ctx.beginPath();
-  ctx.ellipse(0, torsoY, 11, 10, 0, 0, 6.283);
+  ctx.ellipse(0, torsoY, 13, 12, 0, 0, 6.283);
   ctx.fill();
-  // sleeve seam
-  ctx.fillStyle = "rgba(0,0,0,0.2)";
-  ctx.fillRect(-11, torsoY - 3, 2, 6);
-  ctx.fillRect(9, torsoY - 3, 2, 6);
-  // chest star
-  ctx.fillStyle = "#ffd45a";
-  drawStar(0, torsoY + 1, 1.8, 4, 5);
+  // darker edge shading
+  ctx.fillStyle = "rgba(90,10,16,0.25)";
+  ctx.beginPath();
+  ctx.ellipse(3, torsoY + 3, 12, 10, 0, 0, 6.283);
   ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,0.35)";
-  ctx.lineWidth = 0.6;
-  ctx.stroke();
+
+  // white chest crescent/moon marking
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.moveTo(-6, torsoY - 2);
+  ctx.quadraticCurveTo(-8, torsoY + 5, -3, torsoY + 8);
+  ctx.quadraticCurveTo(0, torsoY + 9, 3, torsoY + 8);
+  ctx.quadraticCurveTo(8, torsoY + 5, 6, torsoY - 2);
+  ctx.quadraticCurveTo(4, torsoY + 1, 0, torsoY + 0);
+  ctx.quadraticCurveTo(-4, torsoY + 1, -6, torsoY - 2);
+  ctx.closePath();
+  ctx.fill();
+  // crescent shading
+  ctx.fillStyle = "rgba(200,200,210,0.35)";
+  ctx.beginPath();
+  ctx.ellipse(0, torsoY + 5, 5, 3.5, 0, 0, 6.283);
+  ctx.fill();
 
   // ── ARMS ──
   function drawArm(side, sw) {
-    const baseX = side * 9.5;
-    // upper arm (shirt sleeve)
-    ctx.fillStyle = shirt;
+    const baseX = side * 11;
+    // upper arm (red)
+    const armGrad = ctx.createRadialGradient(baseX, torsoY + 1, 1, baseX, torsoY + 2, 5);
+    armGrad.addColorStop(0, redHi);
+    armGrad.addColorStop(0.6, red);
+    armGrad.addColorStop(1, redShade);
+    ctx.fillStyle = armGrad;
     ctx.beginPath();
-    ctx.ellipse(baseX, torsoY + 1, 3.2, 5, side * sw * 0.04, 0, 6.283);
+    ctx.ellipse(baseX, torsoY + 1, 4, 6, side * sw * 0.03, 0, 6.283);
     ctx.fill();
-    // forearm — skin
-    const fx = baseX + side * 1.5;
-    const fy = torsoY + 7 + Math.abs(sw) * 0.15;
-    ctx.fillStyle = skin;
+
+    // forearm (red)
+    const fx = baseX + side * 2;
+    const fy = torsoY + 8 + Math.abs(sw) * 0.15;
+    ctx.fillStyle = red;
     ctx.beginPath();
-    ctx.ellipse(fx, fy, 2.8, 4, 0, 0, 6.283);
+    ctx.ellipse(fx, fy, 3.5, 4.5, 0, 0, 6.283);
     ctx.fill();
-    // forearm shading
-    ctx.fillStyle = skinShade;
+
+    // boxing glove (large white fist)
+    const gx = fx + side * 1;
+    const gy = fy + 5.5;
+    const gloveGrad = ctx.createRadialGradient(gx - side * 1, gy - 1, 1, gx, gy, 6);
+    gloveGrad.addColorStop(0, glove);
+    gloveGrad.addColorStop(0.6, "#e8e8ec");
+    gloveGrad.addColorStop(1, gloveShade);
+    ctx.fillStyle = gloveGrad;
     ctx.beginPath();
-    ctx.ellipse(fx + 1, fy + 1, 1.8, 3.5, 0, 0, 6.283);
+    ctx.arc(gx, gy, 5.5, 0, 6.283);
     ctx.fill();
-    // hand (fist)
-    ctx.fillStyle = skin;
+    // glove outline
+    ctx.strokeStyle = gloveDark;
+    ctx.lineWidth = 0.5;
     ctx.beginPath();
-    ctx.arc(fx, fy + 5, 2.2, 0, 6.283);
+    ctx.arc(gx, gy, 5.5, 0, 6.283);
+    ctx.stroke();
+    // knuckle spikes on top of glove (two small triangular bumps)
+    ctx.fillStyle = gloveShade;
+    ctx.beginPath();
+    ctx.moveTo(gx - 3, gy - 4.5);
+    ctx.lineTo(gx - 1.5, gy - 8);
+    ctx.lineTo(gx, gy - 4.5);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = skinShade;
     ctx.beginPath();
-    ctx.arc(fx + 0.6, fy + 5.6, 1.4, 0, 6.283);
+    ctx.moveTo(gx + 0.5, gy - 4.5);
+    ctx.lineTo(gx + 2, gy - 8);
+    ctx.lineTo(gx + 3.5, gy - 4.5);
+    ctx.closePath();
+    ctx.fill();
+    // spike highlights
+    ctx.fillStyle = glove;
+    ctx.beginPath();
+    ctx.moveTo(gx - 2.5, gy - 5);
+    ctx.lineTo(gx - 1.5, gy - 7);
+    ctx.lineTo(gx - 0.5, gy - 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(gx + 1, gy - 5);
+    ctx.lineTo(gx + 2, gy - 7);
+    ctx.lineTo(gx + 3, gy - 5);
+    ctx.closePath();
     ctx.fill();
   }
   drawArm(-1, armL);
   drawArm(1, armR);
 
+  // ── DREADLOCK QUILLS (behind head, drawn first) ──
+  const headY = -40 + bodyBob;
+  // 4 thick quill/dreadlock spines hanging from back of head
+  const quillBaseX = -4;
+  const quillBaseY = headY + 2;
+  const quillSway = player.state === "run" ? Math.sin(a * 0.7) * 2 : 0;
+  for (let i = 0; i < 4; i++) {
+    const qAngle = -0.3 - i * 0.22;
+    const qLen = 18 + i * 3;
+    const qx = quillBaseX - i * 1.5;
+    const qy = quillBaseY + i * 2.5;
+    const tipX = qx - Math.cos(qAngle) * qLen + quillSway;
+    const tipY = qy + Math.sin(qAngle) * qLen * 0.5 + i * 2;
+
+    const qGrad = ctx.createLinearGradient(qx, qy, tipX, tipY);
+    qGrad.addColorStop(0, redHi);
+    qGrad.addColorStop(0.4, red);
+    qGrad.addColorStop(0.8, redShade);
+    qGrad.addColorStop(1, redDark);
+    ctx.fillStyle = qGrad;
+    ctx.beginPath();
+    ctx.moveTo(qx, qy - 3.5 + i * 0.3);
+    ctx.quadraticCurveTo((qx + tipX) / 2, (qy + tipY) / 2 - 4, tipX, tipY);
+    ctx.quadraticCurveTo((qx + tipX) / 2, (qy + tipY) / 2 + 4, qx, qy + 3.5 - i * 0.3);
+    ctx.closePath();
+    ctx.fill();
+
+    // highlight stripe on each quill
+    ctx.fillStyle = "rgba(255,100,100,0.3)";
+    ctx.beginPath();
+    ctx.moveTo(qx, qy - 1.5);
+    ctx.quadraticCurveTo((qx + tipX) / 2, (qy + tipY) / 2 - 2, tipX, tipY);
+    ctx.quadraticCurveTo((qx + tipX) / 2, (qy + tipY) / 2 + 0, qx, qy + 1.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   // ── HEAD ──
-  const headY = -36 + bodyBob;
   // neck
-  ctx.fillStyle = skinShade;
-  ctx.fillRect(-2, torsoY - 9, 4, 4);
-  // head sphere
-  const headGrad = ctx.createRadialGradient(-3, headY - 3, 1, 0, headY, 10);
-  headGrad.addColorStop(0, skinHi);
-  headGrad.addColorStop(0.55, skin);
-  headGrad.addColorStop(1, skinShade);
+  ctx.fillStyle = redShade;
+  ctx.fillRect(-3, torsoY - 10, 6, 5);
+
+  // head sphere (red)
+  const headGrad = ctx.createRadialGradient(-3, headY - 3, 1, 0, headY, 11);
+  headGrad.addColorStop(0, redHi);
+  headGrad.addColorStop(0.5, red);
+  headGrad.addColorStop(1, redShade);
   ctx.fillStyle = headGrad;
   ctx.beginPath();
-  ctx.arc(0, headY, 9, 0, 6.283);
-  ctx.fill();
-  // ear
-  ctx.fillStyle = skinShade;
-  ctx.beginPath();
-  ctx.ellipse(-7.5, headY + 1, 1.5, 2.5, 0, 0, 6.283);
-  ctx.fill();
-  ctx.fillStyle = "rgba(0,0,0,0.3)";
-  ctx.beginPath();
-  ctx.arc(-7.5, headY + 1, 0.8, 0, 6.283);
+  ctx.arc(0, headY, 11, 0, 6.283);
   ctx.fill();
 
-  // hair tuft visible under cap (forehead bangs)
-  ctx.fillStyle = hair;
+  // forehead ridge bump (slight brow protrusion)
+  ctx.fillStyle = redShade;
   ctx.beginPath();
-  ctx.arc(2, headY - 5, 3, 0, 6.283);
+  ctx.ellipse(3, headY - 5, 7, 2.5, -0.1, Math.PI, 0);
   ctx.fill();
-  ctx.fillStyle = hairHi;
-  ctx.fillRect(4, headY - 5, 3, 2);
-
-  // ── BASEBALL CAP ──
-  // dome
-  const capGrad = ctx.createLinearGradient(0, headY - 12, 0, headY - 2);
-  capGrad.addColorStop(0, capHi);
-  capGrad.addColorStop(0.5, cap);
-  capGrad.addColorStop(1, capShade);
-  ctx.fillStyle = capGrad;
+  ctx.fillStyle = red;
   ctx.beginPath();
-  ctx.arc(0, headY - 3, 9.5, Math.PI, 0);
-  ctx.lineTo(9.5, headY - 2);
-  ctx.lineTo(-9.5, headY - 2);
-  ctx.closePath();
-  ctx.fill();
-  // cap stitch line
-  ctx.strokeStyle = "rgba(0,0,0,0.3)";
-  ctx.lineWidth = 0.5;
-  ctx.beginPath();
-  ctx.moveTo(0, headY - 12); ctx.lineTo(0, headY - 3);
-  ctx.stroke();
-  // brim (sticks out front)
-  ctx.fillStyle = capShade;
-  ctx.beginPath();
-  ctx.ellipse(5, headY - 3, 8, 2, 0, 0, 6.283);
-  ctx.fill();
-  // brim highlight
-  ctx.fillStyle = capHi;
-  ctx.beginPath();
-  ctx.ellipse(5, headY - 4, 7, 1, 0, 0, 6.283);
-  ctx.fill();
-  // cap logo (yellow star)
-  ctx.fillStyle = "#ffd45a";
-  drawStar(2, headY - 7, 1, 2, 5);
+  ctx.ellipse(3, headY - 5.5, 6.5, 2, -0.1, Math.PI, 0);
   ctx.fill();
 
-  // ── FACE ──
-  // eye
+  // ── MUZZLE (peach/tan snout area) ──
+  const muzzGrad = ctx.createRadialGradient(3, headY + 3, 1, 3, headY + 4, 7);
+  muzzGrad.addColorStop(0, muzzleHi);
+  muzzGrad.addColorStop(0.5, muzzle);
+  muzzGrad.addColorStop(1, muzzleShade);
+  ctx.fillStyle = muzzGrad;
+  ctx.beginPath();
+  ctx.ellipse(3, headY + 4, 7, 5.5, 0, 0, 6.283);
+  ctx.fill();
+
+  // ── EYES (purple, side-view style like Sonic characters) ──
+  // white sclera (connected oval, Sonic style)
   ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.ellipse(3, headY + 1, 2.6, 3.2, 0, 0, 6.283);
+  ctx.ellipse(3, headY + 0.5, 5, 4.5, 0, 0, 6.283);
   ctx.fill();
-  // iris (green)
-  ctx.fillStyle = "#3d8b54";
-  ctx.beginPath(); ctx.arc(3.5, headY + 1, 1.9, 0, 6.283); ctx.fill();
+
+  // purple iris
+  const irisGrad = ctx.createRadialGradient(4, headY + 0.5, 0.5, 4, headY + 0.5, 3);
+  irisGrad.addColorStop(0, "#c060e0");
+  irisGrad.addColorStop(0.5, "#7b2fbe");
+  irisGrad.addColorStop(1, "#4a0e78");
+  ctx.fillStyle = irisGrad;
+  ctx.beginPath();
+  ctx.ellipse(4.5, headY + 0.5, 2.8, 3.2, 0, 0, 6.283);
+  ctx.fill();
+
   // pupil
   ctx.fillStyle = "#0a0a14";
-  ctx.beginPath(); ctx.arc(3.5, headY + 1, 1, 0, 6.283); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(4.8, headY + 0.5, 1.3, 1.8, 0, 0, 6.283);
+  ctx.fill();
+
   // eye shine
   ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.arc(2.7, headY, 0.7, 0, 6.283); ctx.fill();
-  // eyebrow (peek under cap)
-  ctx.strokeStyle = hair;
-  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(1, headY - 3); ctx.lineTo(5.5, headY - 2.5);
-  ctx.stroke();
-  // mouth — smile
-  ctx.strokeStyle = "#6e2818";
-  ctx.lineWidth = 1.1;
+  ctx.arc(3.2, headY - 0.8, 1, 0, 6.283);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(5.5, headY + 2, 0.5, 0, 6.283);
+  ctx.fill();
+
+  // eyebrow (angled, Knuckles' determined look)
+  ctx.strokeStyle = redDark;
+  ctx.lineWidth = 1.6;
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.arc(2, headY + 4, 2.6, 0.2, Math.PI - 0.2);
+  ctx.moveTo(-1, headY - 3.5);
+  ctx.lineTo(7, headY - 2);
   ctx.stroke();
-  // tooth glint
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(2, headY + 5, 1, 1);
-  // cheek blush
-  ctx.fillStyle = "rgba(255,93,143,0.5)";
+
+  // nose (small bump on muzzle)
+  ctx.fillStyle = muzzleShade;
   ctx.beginPath();
-  ctx.ellipse(5, headY + 3, 2, 1.3, 0, 0, 6.283);
+  ctx.ellipse(8, headY + 2.5, 1.5, 1.2, 0, 0, 6.283);
   ctx.fill();
+
+  // mouth — confident smirk
+  ctx.strokeStyle = "#6e2818";
+  ctx.lineWidth = 1.2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(2, headY + 6);
+  ctx.quadraticCurveTo(5, headY + 7.5, 7.5, headY + 5.5);
+  ctx.stroke();
+
+  // slight chin definition
+  ctx.strokeStyle = "rgba(160,100,60,0.3)";
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.arc(3, headY + 7, 4, 0.3, Math.PI - 0.3);
+  ctx.stroke();
 
   ctx.restore();
 
