@@ -871,9 +871,19 @@ function hurtPlayer(instantDeath = false) {
   if (player.powerUp === "big" && !instantDeath) {
     player.powerUp = null;
     player.powerUpTime = 0;
-    player.invuln = 1.5;
-    spawnParticles(player.x + player.w/2, player.y + player.h/2, 20,
-      { color: "#fff", life: 0.55, speed: 260, vy: -60 });
+    player.invuln = 1.8;
+    // Big ring burst + colored particles so it's obviously a shrink, not a death
+    for (let i = 0; i < 32; i++) {
+      const a = (i / 32) * Math.PI * 2;
+      particles.push({
+        x: player.x + player.w/2, y: player.y + player.h/2,
+        vx: Math.cos(a) * 320, vy: Math.sin(a) * 320 - 40,
+        life: 0.6, maxLife: 0.6,
+        color: i % 2 ? "#ff5d8f" : "#ffd45a",
+        r: 4, gravity: 200,
+      });
+    }
+    shake = 0.15;
     return;
   }
   lives -= 1;
@@ -2416,7 +2426,9 @@ function drawCharBody(c, charName, a, legL, legR, armL, armR, bodyBob, pState, t
 function drawPlayer() {
   const x = player.x - camera.x;
   const y = player.y - camera.y;
-  if (player.invuln > 0 && Math.floor(player.invuln * 14) % 2 === 0) return;
+  // Invuln: draw semi-transparent so character stays visible (not flickering invisible)
+  const invulnAlpha = player.invuln > 0 ? 0.45 + Math.abs(Math.sin(player.invuln * 14)) * 0.3 : 1;
+  ctx.globalAlpha = invulnAlpha;
 
   // ground shadow (drawn in world space)
   ctx.fillStyle = "rgba(0,0,0,0.32)";
@@ -2486,6 +2498,7 @@ function drawPlayer() {
     }
     ctx.restore();
   }
+  ctx.globalAlpha = 1;  // reset after invuln transparency
 }
 
 function drawStar(cx, cy, r1, r2, points) {
