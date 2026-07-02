@@ -496,16 +496,16 @@ const LEVELS = [
     map: [
       "........................................................................................................................................................................................................",
       "........................................................................................................................................................................................................",
-      "..................................................*.*.*.*.*...............................*.*.*.*.*...................................................*.*.*.*.*.........................................",
-      ".................................*.*..........................................*.*.........................................................*.*...........................................................",
-      "................................====.........................................====........................................................====...........................................................",
-      "......................Q.......*...*....................*....*....Q....f....*....*..............*....*....Q.........*....*..............*....*....Q....f....*....*..............*....Q...................",
-      "..............................======...................======..............======..............======..............======..............======..............======..............======...................",
-      "........................................................................................................................................................................................................",
-      "..P..*.*.*..*..*..*......*..e...........*..s......*.......e...*....................s......*.........e.........*............s....*.e..............*............e....s......*..............*..e...*....G..",
-      "#############################################..######################################..######################################..######################################..#################################",
-      "#############################################..######################################..######################################..######################################..#################################",
-      "#############################################..######################################..######################################..######################################..#################################",
+      "......................................................................*.*.*.*.*.*...........................................................*.*.*.*.*.*.................................................",
+      "....................................................................................................f...................................................................................................",
+      ".............................................................................................WW.........................................................................................................",
+      "....................Q.........*...*..............................*..Q.*..............*....*..WW..............................Q.........*....*..............*..WW.........................*....Q.........",
+      "..............................======..WW.........................======..............======..WW...................................======...................======........................======.........",
+      "......................................WW.....................................................WW...............................................................WW........................................",
+      "..P..*..*...*..e*...*...*...e...*.....WWwwwwwwwwwwwwwwwwww..s.................e..............WWwwwwwwwwwwwwwwwwwwww..s......................e...........e.....WWwwwwwwwwwwwwwwwwwwww..........e......G..",
+      "########################################wwwwwwwwwwwwwwwwww#####################################www*wwwwww*wwjwww*ww#############################################wwwww*wwwwwwww*wwwww####################",
+      "########################################wwwww*wwjw*www*www#####################################www*wjw*www*wwww*www#############################################www*www*wwjw*wwww*ww####################",
+      "########################################wwwwwwwwwwwwwwwwww#####################################wwwwwwwwwwwwwwwwwwww#############################################wwwwwwwwwwwwwwwwwwww####################",
     ]
   }
 ];
@@ -566,6 +566,9 @@ function loadLevel(idx) {
       } else if (ch === "f") {
         entities.push({ kind: "flyer", x: px, y: py, w: 44, h: 36, baseY: py, t: Math.random()*6.28, alive: true });
         tiles[y][x] = ".";
+      } else if (ch === "j") {
+        entities.push({ kind: "jellyfish", x: px + 4, y: py, w: 40, h: 44, baseY: py, t: Math.random()*6.28, alive: true });
+        tiles[y][x] = ".";
       } else if (ch === "s") {
         entities.push({ kind: "spring", x: px + 6, y: py + TILE - 20, w: TILE - 12, h: 20, charge: 0 });
         tiles[y][x] = ".";
@@ -615,6 +618,15 @@ function isSolid(tx, ty) {
 function isSlope(tx, ty) {
   const t = tileAt(tx, ty);
   return t === "/" || t === "\\";
+}
+function isWater(tx, ty) { return tileAt(tx, ty) === "w"; }
+function playerInWater() {
+  // Player is swimming when their mid-body overlaps a water tile.
+  const cx = player.x + player.w / 2;
+  const cy = player.y + player.h * 0.55;
+  const tx = Math.floor(cx / TILE);
+  const ty = Math.floor(cy / TILE);
+  return isWater(tx, ty);
 }
 // Surface Y (world-space) of a slope tile at world X. Returns null if not a slope.
 function slopeSurfaceY(tx, ty, worldX) {
@@ -692,21 +704,28 @@ function updatePlayer(dt) {
     if (player.powerUpTime <= 0) clearPowerUp();
   }
 
+  const inWater = playerInWater();
   const fastBoost = player.powerUp === "fast" ? 1.55 : 1;
-  const maxSpeed = (running ? RUN_MAX : WALK_MAX) * fastBoost;
-  const accel = (running ? RUN_ACCEL : ACCEL) * fastBoost;
+  const waterDrag = inWater ? 0.55 : 1;   // slower movement underwater
+  const maxSpeed = (running ? RUN_MAX : WALK_MAX) * fastBoost * waterDrag;
+  const accel = (running ? RUN_ACCEL : ACCEL) * fastBoost * waterDrag;
 
   if (left && !right) { player.vx -= accel * dt; player.facing = -1; }
   else if (right && !left) { player.vx += accel * dt; player.facing = 1; }
   else {
-    const f = player.onGround ? FRICTION : AIR_FRICTION;
+    const f = player.onGround ? FRICTION : (inWater ? 400 : AIR_FRICTION);
     if (player.vx > 0) player.vx = Math.max(0, player.vx - f * dt);
     else if (player.vx < 0) player.vx = Math.min(0, player.vx + f * dt);
   }
   player.vx = Math.max(-maxSpeed, Math.min(maxSpeed, player.vx));
 
-  player.vy += GRAVITY * dt;
-  if (player.vy > MAX_FALL) player.vy = MAX_FALL;
+  // Buoyancy in water instead of full gravity
+  const gravEff = inWater ? 320 : GRAVITY;
+  const maxFallEff = inWater ? 220 : MAX_FALL;
+  player.vy += gravEff * dt;
+  if (player.vy > maxFallEff) player.vy = maxFallEff;
+  // In water, damp upward velocity so swim strokes don't stack forever
+  if (inWater && player.vy < -400) player.vy = -400;
 
   if (consumeJustPressed("Space") || consumeJustPressed("ArrowUp") || consumeJustPressed("KeyW")) {
     player.jumpBuf = JUMP_BUFFER;
@@ -714,7 +733,15 @@ function updatePlayer(dt) {
   player.jumpBuf -= dt;
   player.coyote -= dt;
 
-  if (player.jumpBuf > 0 && (player.onGround || player.coyote > 0)) {
+  if (inWater) {
+    // Each jump press = swim stroke upward. Can repeat, no ground needed.
+    if (player.jumpBuf > 0) {
+      player.vy = -360;
+      player.jumpBuf = 0;
+      spawnParticles(player.x + player.w/2, player.y + player.h/2, 6,
+        { color: "rgba(255,255,255,0.75)", life: 0.4, speed: 80, vy: 40, r: 2, gravity: -80 });
+    }
+  } else if (player.jumpBuf > 0 && (player.onGround || player.coyote > 0)) {
     player.vy = JUMP_V;
     player.onGround = false;
     player.coyote = 0;
@@ -722,11 +749,17 @@ function updatePlayer(dt) {
     player.jumpHeld = true;
     spawnParticles(player.x + player.w/2, player.y + player.h, 8, { color: "#fff", life: 0.35, speed: 140, vy: -40, r: 2 });
   }
-  if (!jumpDown && player.jumpHeld && player.vy < 0) {
+  if (!inWater && !jumpDown && player.jumpHeld && player.vy < 0) {
     player.vy *= JUMP_CUT;
     player.jumpHeld = false;
   }
   if (!jumpDown) player.jumpHeld = false;
+
+  // Ambient bubbles while underwater
+  if (inWater && Math.random() < 0.35) {
+    spawnParticles(player.x + player.w/2 + (Math.random()-0.5)*20, player.y + player.h*0.4, 1,
+      { color: "rgba(255,255,255,0.65)", life: 0.9, speed: 20, vy: -50, r: 1.5, gravity: -80 });
+  }
 
   // X collision
   player.x += player.vx * dt;
@@ -1027,6 +1060,22 @@ function updateEntities(dt) {
           hurtPlayer();
         }
       }
+    } else if (e.kind === "jellyfish") {
+      if (!e.alive) continue;
+      e.t += dt;
+      // Bob up and down, drift slowly sideways
+      e.y = e.baseY + Math.sin(e.t * 1.2) * 40;
+      e.x += Math.sin(e.t * 0.4) * 12 * dt;
+      if (rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h })) {
+        // Stomp only if diving hard from above
+        if (player.vy > 120 && player.y + player.h - 14 < e.y) {
+          e.alive = false;
+          player.vy = -280;
+          spawnParticles(e.x + e.w/2, e.y + e.h/2, 16, { color: "#c084fc", life: 0.55, speed: 220 });
+        } else {
+          hurtPlayer();
+        }
+      }
     } else if (e.kind === "spring") {
       e.charge = Math.max(0, e.charge - dt * 3);
       if (rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h }) && player.vy > 0) {
@@ -1087,7 +1136,7 @@ function updateEntities(dt) {
       }
       // Kill enemies on contact
       for (const other of entities) {
-        if ((other.kind === "walker" || other.kind === "flyer") && other.alive) {
+        if ((other.kind === "walker" || other.kind === "flyer" || other.kind === "jellyfish") && other.alive) {
           if (rectsOverlap(entityAABB(e), entityAABB(other))) {
             other.alive = false;
             e.alive = false;
@@ -1389,6 +1438,8 @@ function drawTiles() {
       if (ch === "q") { drawQBlock(x, y, true); continue; }
       if (ch === "/") { drawSlope(x, y, "/", p); continue; }
       if (ch === "\\") { drawSlope(x, y, "\\", p); continue; }
+      if (ch === "w") { drawWaterTile(x, y, tx, ty); continue; }
+      if (ch === "W") { drawWaterfallTile(x, y, tx, ty); continue; }
       if (ch !== "#" && ch !== "=") continue;
       const above = tileAt(tx, ty - 1);
       const below = tileAt(tx, ty + 1);
@@ -1591,6 +1642,88 @@ function drawSlope(x, y, dir, p) {
   ctx.fillRect(x, y + TILE - 3, TILE, 3);
 }
 
+function drawWaterTile(x, y, tx, ty) {
+  const above = tileAt(tx, ty - 1);
+  const isSurface = !(above === "w" || above === "W");
+  // Base body — layered translucent blue with animated hue shift
+  const bg = ctx.createLinearGradient(x, y, x, y + TILE);
+  bg.addColorStop(0, "rgba(80,180,240,0.55)");
+  bg.addColorStop(1, "rgba(20,80,160,0.7)");
+  ctx.fillStyle = bg;
+  ctx.fillRect(x, y, TILE, TILE);
+  // Depth caustics — bright ripple lines
+  const seed = tx * 41 + ty * 17;
+  ctx.strokeStyle = "rgba(220,240,255,0.25)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const wy = y + 8 + i * 12 + Math.sin(timeAccum * 2 + seed * 0.1 + i) * 2;
+    ctx.beginPath();
+    ctx.moveTo(x, wy);
+    ctx.lineTo(x + TILE, wy + Math.sin(timeAccum + seed) * 3);
+    ctx.stroke();
+  }
+  // Surface wave overlay
+  if (isSurface) {
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    for (let i = 0; i < 6; i++) {
+      const sx = x + i * 8;
+      const sy = y + 2 + Math.sin(timeAccum * 3 + sx * 0.1) * 2;
+      ctx.beginPath();
+      ctx.ellipse(sx + 3, sy, 4, 1.5, 0, 0, 6.283);
+      ctx.fill();
+    }
+    // Bright surface line
+    ctx.strokeStyle = "rgba(255,255,255,0.75)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 8; i++) {
+      const sx = x + i * (TILE / 8);
+      const sy = y + 3 + Math.sin(timeAccum * 4 + sx * 0.15) * 2;
+      if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+  }
+  // Occasional bubble drifting up
+  if (((seed + Math.floor(timeAccum * 2)) % 7) === 0) {
+    const bx = x + 8 + ((seed * 3) % 32);
+    const by = y + TILE - ((timeAccum * 40 + seed) % TILE);
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.beginPath(); ctx.arc(bx, by, 1.5, 0, 6.283); ctx.fill();
+  }
+}
+
+function drawWaterfallTile(x, y, tx, ty) {
+  const above = tileAt(tx, ty - 1);
+  const isTop = !(above === "W");
+  // Fast-flowing gradient
+  const bg = ctx.createLinearGradient(x, y, x + TILE, y);
+  bg.addColorStop(0, "rgba(160,220,255,0.85)");
+  bg.addColorStop(0.5, "rgba(220,240,255,0.95)");
+  bg.addColorStop(1, "rgba(160,220,255,0.85)");
+  ctx.fillStyle = bg;
+  ctx.fillRect(x + 4, y, TILE - 8, TILE);
+  // Downward streaming lines
+  ctx.strokeStyle = "rgba(255,255,255,0.85)";
+  ctx.lineWidth = 1.5;
+  const scroll = (timeAccum * 400) % TILE;
+  for (let i = 0; i < 4; i++) {
+    const sx = x + 8 + i * 10;
+    const yOff = (scroll + i * 12) % TILE;
+    ctx.beginPath();
+    ctx.moveTo(sx, y + yOff);
+    ctx.lineTo(sx, y + yOff + 8);
+    ctx.stroke();
+  }
+  // Sparkle spray at the top
+  if (isTop) {
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    for (let i = 0; i < 5; i++) {
+      const sx = x + 6 + i * 8 + Math.sin(timeAccum * 5 + i) * 2;
+      ctx.beginPath(); ctx.arc(sx, y + 2, 1.5, 0, 6.283); ctx.fill();
+    }
+  }
+}
+
 function drawEntities() {
   for (const e of entities) {
     const x = e.x - camera.x;
@@ -1628,6 +1761,8 @@ function drawEntities() {
       drawWalker(x, y, e);
     } else if (e.kind === "flyer" && e.alive) {
       drawFlyer(x, y, e);
+    } else if (e.kind === "jellyfish" && e.alive) {
+      drawJellyfish(x, y, e);
     } else if (e.kind === "spring") {
       drawSpring(x, y, e);
     } else if (e.kind === "powerup" && e.alive) {
@@ -1832,6 +1967,59 @@ function drawWalker(x, y, e) {
   const legPhase = Math.sin(t * 12);
   ctx.fillRect(cx - 9, y + e.h - 5, 5, 5 + legPhase);
   ctx.fillRect(cx + 4, y + e.h - 5, 5, 5 - legPhase);
+}
+
+function drawJellyfish(x, y, e) {
+  const t = e.t;
+  const cx = x + e.w/2, cy = y + e.h/2;
+  const pulse = Math.sin(t * 2.8) * 0.15 + 1;
+  // Soft glow halo
+  const halo = ctx.createRadialGradient(cx, cy, 4, cx, cy, 30);
+  halo.addColorStop(0, "rgba(192,132,252,0.35)");
+  halo.addColorStop(1, "rgba(192,132,252,0)");
+  ctx.fillStyle = halo;
+  ctx.beginPath(); ctx.arc(cx, cy, 30, 0, 6.283); ctx.fill();
+  // Bell (dome) with gradient
+  const bell = ctx.createRadialGradient(cx - 5, cy - 8, 2, cx, cy - 4, 18);
+  bell.addColorStop(0, "rgba(240,220,255,0.9)");
+  bell.addColorStop(0.6, "rgba(192,132,252,0.85)");
+  bell.addColorStop(1, "rgba(120,60,180,0.75)");
+  ctx.fillStyle = bell;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 4, 18 * pulse, 14 * pulse, 0, Math.PI, 0);
+  ctx.fill();
+  // Bell rim
+  ctx.strokeStyle = "rgba(200,150,255,0.85)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 4, 18 * pulse, 14 * pulse, 0, Math.PI, 0);
+  ctx.stroke();
+  // Inner organs (small glow spots)
+  for (let i = 0; i < 3; i++) {
+    const sx = cx - 6 + i * 6;
+    ctx.fillStyle = "rgba(255,220,120,0.7)";
+    ctx.beginPath(); ctx.arc(sx, cy - 6, 2, 0, 6.283); ctx.fill();
+  }
+  // Wavy tentacles
+  ctx.strokeStyle = "rgba(200,150,255,0.7)";
+  ctx.lineWidth = 1.6;
+  for (let i = 0; i < 6; i++) {
+    const tx = cx - 12 + i * 5;
+    const wobble = Math.sin(t * 3 + i * 0.8) * 3;
+    ctx.beginPath();
+    ctx.moveTo(tx, cy - 4);
+    ctx.quadraticCurveTo(tx + wobble, cy + 8, tx - wobble * 0.5, cy + 18);
+    ctx.stroke();
+  }
+  // Long trailing tendril in the middle
+  ctx.strokeStyle = "rgba(255,180,255,0.6)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 4);
+  ctx.bezierCurveTo(cx + Math.sin(t*2)*6, cy + 10,
+                    cx - Math.sin(t*2)*8, cy + 22,
+                    cx + Math.sin(t*2)*3, cy + 30);
+  ctx.stroke();
 }
 
 function drawFlyer(x, y, e) {
