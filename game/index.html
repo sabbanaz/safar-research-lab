@@ -211,6 +211,10 @@
   .char-card.tails:hover { border-color: rgba(255,180,60,1); }
   .char-card.knuckles { border-color: rgba(220,28,44,0.6); }
   .char-card.knuckles:hover { border-color: rgba(220,28,44,1); }
+  .char-card.shadow { border-color: rgba(230,57,70,0.6); box-shadow: 0 0 0 1px rgba(26,26,26,0.6) inset; }
+  .char-card.shadow:hover { border-color: rgba(230,57,70,1); }
+  .char-card.amy { border-color: rgba(255,157,205,0.7); }
+  .char-card.amy:hover { border-color: rgba(255,157,205,1); }
   .char-card .char-name {
     font-size: 20px; font-weight: 900; margin: 8px 0 4px; letter-spacing: 2px;
   }
@@ -260,6 +264,16 @@
           <canvas id="preview-knuckles" width="100" height="120"></canvas>
           <div class="char-name">KNUCKLES</div>
           <div class="char-tagline">Power puncher</div>
+        </div>
+        <div class="char-card shadow" id="pick-shadow">
+          <canvas id="preview-shadow" width="100" height="120"></canvas>
+          <div class="char-name">SHADOW</div>
+          <div class="char-tagline">Dark rival</div>
+        </div>
+        <div class="char-card amy" id="pick-amy">
+          <canvas id="preview-amy" width="100" height="120"></canvas>
+          <div class="char-name">AMY</div>
+          <div class="char-tagline">Hammer power</div>
         </div>
       </div>
       <button class="btn secondary" id="char-back-btn">← BACK</button>
@@ -467,6 +481,31 @@ const LEVELS = [
       "########....######....#####....######....#####....######....#####....######....#####..###########.#####....######....#####....######....#####....######....#####....######....#####....#################",
       "########....######....#####....######....#####....######....#####....######....#####..###########.#####....######....#####....######....#####....######....#####....######....#####....#################",
       "########....######....#####....######....#####....######....#####....######....#####..###########.#####....######....#####....######....#####....######....#####....######....#####....#################",
+    ]
+  }
+  ,{
+    id: 4,
+    name: "SPLASH LAGOON",
+    blurb: "Water park getaway. Coins and springs galore.",
+    palette: {
+      sky1: "#a0d8ff", sky2: "#4fc3f7", sky3: "#26a69a",
+      far:  "#7fbfd8", mid:  "#4a9bb8", near: "#2a7a94",
+      groundTop: "#4dd0e1", groundBody: "#00838f", groundShade: "#004d40",
+      accent: "#ffd45a"
+    },
+    map: [
+      "........................................................................................................................................................................................................",
+      "........................................................................................................................................................................................................",
+      "..................................................*.*.*.*.*...............................*.*.*.*.*...................................................*.*.*.*.*.........................................",
+      ".................................*.*..........................................*.*.........................................................*.*...........................................................",
+      "................................====.........................................====........................................................====...........................................................",
+      "......................Q.......*...*....................*....*....Q....f....*....*..............*....*....Q.........*....*..............*....*....Q....f....*....*..............*....Q...................",
+      "..............................======...................======..............======..............======..............======..............======..............======..............======...................",
+      "........................................................................................................................................................................................................",
+      "..P..*.*.*..*..*..*......*..e...........*..s......*.......e...*....................s......*.........e.........*............s....*.e..............*............e....s......*..............*..e...*....G..",
+      "#############################################..######################################..######################################..######################################..#################################",
+      "#############################################..######################################..######################################..######################################..#################################",
+      "#############################################..######################################..######################################..######################################..#################################",
     ]
   }
 ];
@@ -2267,6 +2306,448 @@ function drawCharBody(c, charName, a, legL, legR, armL, armR, bodyBob, pState, t
       c.closePath(); c.fill();
     }
 
+  } else if (charName === "shadow") {
+    // ── Shadow palette ──
+    const black = "#1a1a1a", blackHi = "#3a3a3a", blackShade = "#0a0a0a", blackDark = "#000";
+    const red = "#e63946", redHi = "#ff5a6a", redShade = "#8b0e18";
+    const skinTan = "#f5c9a0", skinHi = "#ffe2c8", skinShade = "#c89868";
+    const glove = "#1a1a1a", gloveShade = "#0a0a0a", gloveDark = "#000";
+    const silver = "#c0c0c8", silverHi = "#e8e8ec";
+
+    // ── LEGS (red tactical boots with silver buckles) ──
+    function drawShadowLeg(offX, sw) {
+      // black leg/shin
+      const lg = c.createRadialGradient(offX, -12 + sw*0.05, 1, offX, -10 + sw*0.05, 6);
+      lg.addColorStop(0, blackHi); lg.addColorStop(0.6, black); lg.addColorStop(1, blackShade);
+      c.fillStyle = lg;
+      c.beginPath(); c.ellipse(offX, -12 + sw*0.05, 5, 7.5, 0, 0, 6.283); c.fill();
+
+      // silver cuff/strap band at ankle
+      c.fillStyle = silver;
+      c.beginPath(); c.ellipse(offX, -5 + sw*0.3, 5.5, 2.5, 0, 0, 6.283); c.fill();
+      c.fillStyle = "#808088";
+      c.beginPath(); c.ellipse(offX, -4 + sw*0.3, 5.5, 1.2, 0, 0, 6.283); c.fill();
+
+      // red boot body
+      const shoeX = offX + sw*0.2, shoeY = -1 + sw*0.4;
+      const sg = c.createRadialGradient(shoeX-1, shoeY-2, 1, shoeX, shoeY, 7);
+      sg.addColorStop(0, redHi); sg.addColorStop(0.5, red); sg.addColorStop(1, redShade);
+      c.fillStyle = sg;
+      c.beginPath(); c.ellipse(shoeX, shoeY, 7, 3.5, 0, 0, 6.283); c.fill();
+      // black strap band across boot
+      c.fillStyle = black;
+      c.beginPath();
+      c.moveTo(shoeX-6, shoeY-0.5); c.lineTo(shoeX+6, shoeY-0.5);
+      c.lineTo(shoeX+5.5, shoeY+1); c.lineTo(shoeX-5.5, shoeY+1);
+      c.closePath(); c.fill();
+      // silver metallic buckle
+      c.fillStyle = silverHi;
+      c.fillRect(shoeX-5, shoeY-0.3, 2, 1.3);
+      c.fillStyle = silver;
+      c.beginPath(); c.arc(shoeX+3, shoeY+0.2, 1.4, 0, 6.283); c.fill();
+      c.strokeStyle = "#606068"; c.lineWidth = 0.4;
+      c.beginPath(); c.arc(shoeX+3, shoeY+0.2, 1.4, 0, 6.283); c.stroke();
+      // dark sole
+      c.fillStyle = "#303038";
+      c.beginPath(); c.ellipse(shoeX, shoeY+2.5, 7, 1.5, 0, 0, 6.283); c.fill();
+    }
+    drawShadowLeg(-5, legL);
+    drawShadowLeg(5, legR);
+
+    // ── TORSO ──
+    const tg = c.createRadialGradient(-3, torsoY-4, 1, 0, torsoY, 14);
+    tg.addColorStop(0, blackHi); tg.addColorStop(0.5, black); tg.addColorStop(1, blackShade);
+    c.fillStyle = tg;
+    c.beginPath(); c.ellipse(0, torsoY, 13, 12, 0, 0, 6.283); c.fill();
+    // white chest fur tuft
+    c.fillStyle = "#fff";
+    c.beginPath();
+    c.moveTo(-8, torsoY-2);
+    c.quadraticCurveTo(-10, torsoY+3, -6, torsoY+6);
+    c.quadraticCurveTo(-2, torsoY+8, 0, torsoY+6);
+    c.quadraticCurveTo(2, torsoY+8, 6, torsoY+6);
+    c.quadraticCurveTo(10, torsoY+3, 8, torsoY-2);
+    c.quadraticCurveTo(5, torsoY, 2, torsoY-1);
+    c.quadraticCurveTo(0, torsoY-2, -2, torsoY-1);
+    c.quadraticCurveTo(-5, torsoY, -8, torsoY-2);
+    c.closePath(); c.fill();
+    // fluffy fur highlight tufts
+    c.fillStyle = "rgba(255,255,255,0.6)";
+    c.beginPath(); c.arc(-4, torsoY+1, 2, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(4, torsoY+1, 2, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(0, torsoY+3, 2, 0, 6.283); c.fill();
+
+    // ── ARMS (black boxing gloves with red cuffs) ──
+    function drawShadowArm(side, sw) {
+      const baseX = side*11;
+      const ag = c.createRadialGradient(baseX, torsoY+1, 1, baseX, torsoY+2, 5);
+      ag.addColorStop(0, blackHi); ag.addColorStop(0.6, black); ag.addColorStop(1, blackShade);
+      c.fillStyle = ag;
+      c.beginPath(); c.ellipse(baseX, torsoY+1, 4, 6, side*sw*0.03, 0, 6.283); c.fill();
+      const fx = baseX + side*2, fy = torsoY+8 + Math.abs(sw)*0.15;
+      c.fillStyle = black;
+      c.beginPath(); c.ellipse(fx, fy, 3.5, 4.5, 0, 0, 6.283); c.fill();
+      // red cuff at wrist
+      c.fillStyle = red;
+      c.beginPath(); c.ellipse(fx, fy+2.5, 4.2, 1.8, 0, 0, 6.283); c.fill();
+      c.fillStyle = redShade;
+      c.beginPath(); c.ellipse(fx, fy+3.4, 4.2, 0.9, 0, 0, 6.283); c.fill();
+      // black boxing-style glove
+      const gx = fx+side*1, gy = fy+6;
+      const gg = c.createRadialGradient(gx-side*1, gy-1, 1, gx, gy, 6);
+      gg.addColorStop(0, blackHi); gg.addColorStop(0.6, black); gg.addColorStop(1, blackShade);
+      c.fillStyle = gg;
+      c.beginPath(); c.arc(gx, gy, 5.5, 0, 6.283); c.fill();
+      c.strokeStyle = gloveDark; c.lineWidth = 0.5;
+      c.beginPath(); c.arc(gx, gy, 5.5, 0, 6.283); c.stroke();
+    }
+    drawShadowArm(-1, armL);
+    drawShadowArm(1, armR);
+
+    // ── QUILLS (3 backward-pointing black quills with red streaks) ──
+    const shadowQuillSway = pState === "run" ? Math.sin(a*0.7)*2 : 0;
+    for (let i = 0; i < 3; i++) {
+      const qAngle = -0.2 - i*0.28;
+      const qLen = 22 + i*4;
+      const qx = -3 - i*1.2;
+      const qy = headY + 1 + i*3;
+      const tipX = qx - Math.cos(qAngle)*qLen + shadowQuillSway;
+      const tipY = qy + Math.sin(qAngle)*qLen*0.4 + i*2;
+      const qg = c.createLinearGradient(qx, qy, tipX, tipY);
+      qg.addColorStop(0, blackHi); qg.addColorStop(0.4, black);
+      qg.addColorStop(0.8, blackShade); qg.addColorStop(1, blackDark);
+      c.fillStyle = qg;
+      c.beginPath();
+      c.moveTo(qx, qy-4+i*0.3);
+      c.quadraticCurveTo((qx+tipX)/2, (qy+tipY)/2-5, tipX, tipY);
+      c.quadraticCurveTo((qx+tipX)/2, (qy+tipY)/2+5, qx, qy+4-i*0.3);
+      c.closePath(); c.fill();
+      // red streak along quill
+      const rg = c.createLinearGradient(qx, qy, tipX, tipY);
+      rg.addColorStop(0, "rgba(230,57,70,0)");
+      rg.addColorStop(0.35, "rgba(230,57,70,0.95)");
+      rg.addColorStop(0.75, "rgba(255,90,106,0.85)");
+      rg.addColorStop(1, "rgba(230,57,70,0)");
+      c.strokeStyle = rg; c.lineWidth = 1.6; c.lineCap = "round";
+      c.beginPath();
+      c.moveTo(qx+1, qy);
+      c.quadraticCurveTo((qx+tipX)/2, (qy+tipY)/2 - 1, tipX, tipY);
+      c.stroke();
+    }
+
+    // ── HEAD ──
+    c.fillStyle = blackShade;
+    c.fillRect(-3, torsoY-10, 6, 5);
+    const hg = c.createRadialGradient(-3, headY-3, 1, 0, headY, 11);
+    hg.addColorStop(0, blackHi); hg.addColorStop(0.5, black); hg.addColorStop(1, blackShade);
+    c.fillStyle = hg;
+    c.beginPath(); c.arc(0, headY, 11, 0, 6.283); c.fill();
+
+    // red streak marking on top of head between quills
+    c.fillStyle = red;
+    c.beginPath();
+    c.moveTo(-3, headY-8);
+    c.quadraticCurveTo(0, headY-11, 3, headY-8);
+    c.quadraticCurveTo(2, headY-6, 0, headY-5);
+    c.quadraticCurveTo(-2, headY-6, -3, headY-8);
+    c.closePath(); c.fill();
+    c.fillStyle = redHi;
+    c.beginPath();
+    c.moveTo(-1.5, headY-8.5);
+    c.quadraticCurveTo(0, headY-10, 1.5, headY-8.5);
+    c.lineTo(0, headY-6.5);
+    c.closePath(); c.fill();
+
+    // muzzle (peach/tan, slightly angular)
+    const mg = c.createRadialGradient(3, headY+3, 1, 3, headY+4, 7);
+    mg.addColorStop(0, skinHi); mg.addColorStop(0.5, skinTan); mg.addColorStop(1, skinShade);
+    c.fillStyle = mg;
+    c.beginPath();
+    c.moveTo(-3, headY+1);
+    c.lineTo(2, headY-2);
+    c.quadraticCurveTo(9, headY-1, 10, headY+4);
+    c.quadraticCurveTo(9, headY+9, 3, headY+9);
+    c.quadraticCurveTo(-3, headY+8, -3, headY+1);
+    c.closePath(); c.fill();
+
+    // white eye base (pointed almond shape)
+    c.fillStyle = "#fff";
+    c.beginPath();
+    c.moveTo(-1, headY-1);
+    c.lineTo(7, headY-2);
+    c.lineTo(8, headY+2);
+    c.lineTo(0, headY+3);
+    c.closePath(); c.fill();
+    // red iris (pointed shape, angled downward)
+    const shadowIg = c.createRadialGradient(4, headY+0.5, 0.5, 4, headY+0.5, 3);
+    shadowIg.addColorStop(0, redHi); shadowIg.addColorStop(0.5, red); shadowIg.addColorStop(1, "#8b0e18");
+    c.fillStyle = shadowIg;
+    c.beginPath();
+    c.moveTo(0.5, headY);
+    c.lineTo(7, headY-1);
+    c.lineTo(7.5, headY+1.5);
+    c.lineTo(1, headY+2);
+    c.closePath(); c.fill();
+    // black pupil (pointed)
+    c.fillStyle = "#0a0a14";
+    c.beginPath();
+    c.moveTo(3, headY-0.2);
+    c.lineTo(6, headY-0.6);
+    c.lineTo(6.2, headY+1);
+    c.lineTo(3.2, headY+1.4);
+    c.closePath(); c.fill();
+    // eye shine
+    c.fillStyle = "#fff";
+    c.beginPath(); c.arc(3.6, headY-0.2, 0.7, 0, 6.283); c.fill();
+
+    // angry angled-down eyebrow
+    c.strokeStyle = blackDark; c.lineWidth = 2; c.lineCap = "round";
+    c.beginPath(); c.moveTo(-1, headY-4.5); c.lineTo(7.5, headY-2); c.stroke();
+
+    // nose
+    c.fillStyle = "#000";
+    c.beginPath(); c.ellipse(8, headY+2.5, 1.5, 1.2, 0, 0, 6.283); c.fill();
+
+    // determined flat mouth
+    c.strokeStyle = "#2a0808"; c.lineWidth = 1.3; c.lineCap = "round";
+    c.beginPath(); c.moveTo(2, headY+6.5);
+    c.quadraticCurveTo(5, headY+6, 7.5, headY+6.5); c.stroke();
+
+  } else if (charName === "amy") {
+    // ── Amy palette ──
+    const pink = "#ff9dcd", pinkHi = "#ffc4e0", pinkShade = "#c46a9a", pinkDark = "#8b4270";
+    const red = "#e63946", redHi = "#ff5a6a", redShade = "#8b0e18";
+    const green = "#3d8b54", greenHi = "#5ec078", greenShade = "#1e5a2a";
+    const skinTan = "#f5c9a0", skinHi = "#ffe2c8", skinShade = "#c89868";
+    const glove = "#f8f8f8", gloveShade = "#c0c0c8", gloveDark = "#888890";
+    const gold = "#f0d020", goldHi = "#ffea60", goldShade = "#c8a808";
+
+    // ── LEGS (red tall boots with white cuff, small heel) ──
+    function drawAmyLeg(offX, sw) {
+      // pink leg peek at top
+      const lg = c.createRadialGradient(offX, -14 + sw*0.05, 1, offX, -12 + sw*0.05, 5);
+      lg.addColorStop(0, pinkHi); lg.addColorStop(0.6, pink); lg.addColorStop(1, pinkShade);
+      c.fillStyle = lg;
+      c.beginPath(); c.ellipse(offX, -13 + sw*0.05, 3.5, 4, 0, 0, 6.283); c.fill();
+
+      // white cuff at top of boot
+      c.fillStyle = "#fff";
+      c.beginPath(); c.ellipse(offX, -9 + sw*0.15, 5.2, 2.3, 0, 0, 6.283); c.fill();
+      c.fillStyle = "#e0e0e8";
+      c.beginPath(); c.ellipse(offX, -8 + sw*0.15, 5.2, 1.0, 0, 0, 6.283); c.fill();
+
+      // tall red boot shaft
+      const bg = c.createRadialGradient(offX-1, -5 + sw*0.2, 1, offX, -4 + sw*0.2, 6);
+      bg.addColorStop(0, redHi); bg.addColorStop(0.5, red); bg.addColorStop(1, redShade);
+      c.fillStyle = bg;
+      c.beginPath(); c.ellipse(offX, -4 + sw*0.2, 4.5, 5, 0, 0, 6.283); c.fill();
+
+      // red boot foot
+      const shoeX = offX + sw*0.2, shoeY = -1 + sw*0.4;
+      const sg = c.createRadialGradient(shoeX-1, shoeY-2, 1, shoeX, shoeY, 7);
+      sg.addColorStop(0, redHi); sg.addColorStop(0.5, red); sg.addColorStop(1, redShade);
+      c.fillStyle = sg;
+      c.beginPath(); c.ellipse(shoeX, shoeY, 6.5, 3.5, 0, 0, 6.283); c.fill();
+
+      // small heel at back
+      c.fillStyle = redShade;
+      c.beginPath();
+      c.moveTo(shoeX-5.5, shoeY+1.5);
+      c.lineTo(shoeX-6.5, shoeY+3);
+      c.lineTo(shoeX-4, shoeY+3);
+      c.closePath(); c.fill();
+
+      // dark sole
+      c.fillStyle = "#4a0a10";
+      c.beginPath(); c.ellipse(shoeX, shoeY+2.7, 6.5, 1.2, 0, 0, 6.283); c.fill();
+    }
+    drawAmyLeg(-5, legL);
+    drawAmyLeg(5, legR);
+
+    // ── TORSO (pink upper body) ──
+    const tg = c.createRadialGradient(-3, torsoY-4, 1, 0, torsoY-1, 12);
+    tg.addColorStop(0, pinkHi); tg.addColorStop(0.5, pink); tg.addColorStop(1, pinkShade);
+    c.fillStyle = tg;
+    c.beginPath(); c.ellipse(0, torsoY-2, 10, 8, 0, 0, 6.283); c.fill();
+
+    // ── DRESS (red bell-shaped skirt flaring outward) ──
+    const dg = c.createLinearGradient(0, torsoY-3, 0, torsoY+12);
+    dg.addColorStop(0, redHi); dg.addColorStop(0.5, red); dg.addColorStop(1, redShade);
+    c.fillStyle = dg;
+    c.beginPath();
+    c.moveTo(-9, torsoY+1);
+    c.quadraticCurveTo(-11, torsoY+6, -14, torsoY+12);
+    c.lineTo(14, torsoY+12);
+    c.quadraticCurveTo(11, torsoY+6, 9, torsoY+1);
+    c.quadraticCurveTo(4, torsoY+3, 0, torsoY+3);
+    c.quadraticCurveTo(-4, torsoY+3, -9, torsoY+1);
+    c.closePath(); c.fill();
+    // dress shading (right side)
+    c.fillStyle = "rgba(90,10,16,0.28)";
+    c.beginPath();
+    c.moveTo(3, torsoY+3);
+    c.quadraticCurveTo(11, torsoY+7, 14, torsoY+12);
+    c.lineTo(6, torsoY+12);
+    c.closePath(); c.fill();
+    // dress pleats/fold lines
+    c.strokeStyle = "rgba(139,14,24,0.5)"; c.lineWidth = 0.6;
+    for (let px = -10; px <= 10; px += 5) {
+      c.beginPath();
+      c.moveTo(px*0.6, torsoY+4);
+      c.lineTo(px, torsoY+12);
+      c.stroke();
+    }
+    // white trim border at bottom hem
+    c.fillStyle = "#fff";
+    c.beginPath();
+    c.moveTo(-14, torsoY+11);
+    c.quadraticCurveTo(0, torsoY+12, 14, torsoY+11);
+    c.lineTo(14, torsoY+13);
+    c.quadraticCurveTo(0, torsoY+14, -14, torsoY+13);
+    c.closePath(); c.fill();
+    // scalloped trim details
+    for (let i = -12; i <= 12; i += 3) {
+      c.fillStyle = "#fff";
+      c.beginPath(); c.arc(i, torsoY+13.2, 1.3, 0, 6.283); c.fill();
+    }
+
+    // ── ARMS (white gloves with gold ring bracelets) ──
+    function drawAmyArm(side, sw) {
+      const baseX = side*10;
+      const ag = c.createRadialGradient(baseX, torsoY+1, 1, baseX, torsoY+2, 5);
+      ag.addColorStop(0, pinkHi); ag.addColorStop(0.6, pink); ag.addColorStop(1, pinkShade);
+      c.fillStyle = ag;
+      c.beginPath(); c.ellipse(baseX, torsoY+1, 3.5, 5.5, side*sw*0.03, 0, 6.283); c.fill();
+      const fx = baseX + side*2, fy = torsoY+7 + Math.abs(sw)*0.15;
+      c.fillStyle = pink;
+      c.beginPath(); c.ellipse(fx, fy, 3, 4, 0, 0, 6.283); c.fill();
+
+      // gold ring bracelet at wrist
+      c.fillStyle = gold;
+      c.beginPath(); c.ellipse(fx, fy+3, 3.8, 1.4, 0, 0, 6.283); c.fill();
+      c.fillStyle = goldShade;
+      c.beginPath(); c.ellipse(fx, fy+3.6, 3.8, 0.6, 0, 0, 6.283); c.fill();
+      c.fillStyle = goldHi;
+      c.fillRect(fx-2.5, fy+2.5, 1.6, 0.6);
+
+      // white glove
+      const gx = fx+side*1, gy = fy+6;
+      const gg = c.createRadialGradient(gx-side*1, gy-1, 1, gx, gy, 6);
+      gg.addColorStop(0, glove); gg.addColorStop(0.6, "#e8e8ec"); gg.addColorStop(1, gloveShade);
+      c.fillStyle = gg;
+      c.beginPath(); c.arc(gx, gy, 5, 0, 6.283); c.fill();
+      c.strokeStyle = gloveDark; c.lineWidth = 0.5;
+      c.beginPath(); c.arc(gx, gy, 5, 0, 6.283); c.stroke();
+    }
+    drawAmyArm(-1, armL);
+    drawAmyArm(1, armR);
+
+    // ── HEAD ──
+    c.fillStyle = pinkShade;
+    c.fillRect(-2.5, torsoY-8, 5, 4);
+    const hg = c.createRadialGradient(-3, headY-3, 1, 0, headY, 11);
+    hg.addColorStop(0, pinkHi); hg.addColorStop(0.5, pink); hg.addColorStop(1, pinkShade);
+    c.fillStyle = hg;
+    c.beginPath(); c.arc(0, headY, 11, 0, 6.283); c.fill();
+
+    // ── EARS (triangular, pink outer + lighter pink inner) ──
+    for (let side = -1; side <= 1; side += 2) {
+      const ex = side*7, ey = headY-10;
+      // outer (pink)
+      c.fillStyle = pink;
+      c.beginPath();
+      c.moveTo(ex-3, headY-5); c.lineTo(ex+side*1, ey-6); c.lineTo(ex+3, headY-5);
+      c.closePath(); c.fill();
+      // inner (lighter pink)
+      c.fillStyle = pinkHi;
+      c.beginPath();
+      c.moveTo(ex-1.5, headY-5); c.lineTo(ex+side*0.5, ey-3); c.lineTo(ex+1.5, headY-5);
+      c.closePath(); c.fill();
+    }
+
+    // ── HEADBAND (red strip across top of head, in front of ears) ──
+    c.fillStyle = red;
+    c.beginPath();
+    c.moveTo(-9.5, headY-6);
+    c.quadraticCurveTo(0, headY-11.5, 9.5, headY-6);
+    c.quadraticCurveTo(9.5, headY-4.5, 9, headY-4);
+    c.quadraticCurveTo(0, headY-9, -9, headY-4);
+    c.quadraticCurveTo(-9.5, headY-4.5, -9.5, headY-6);
+    c.closePath(); c.fill();
+    // headband shadow underneath
+    c.fillStyle = redShade;
+    c.beginPath();
+    c.moveTo(-9, headY-4.8);
+    c.quadraticCurveTo(0, headY-8.5, 9, headY-4.8);
+    c.quadraticCurveTo(0, headY-6, -9, headY-4.8);
+    c.closePath(); c.fill();
+
+    // ── BANGS (pink hair spikes hanging under headband) ──
+    for (let i = 0; i < 3; i++) {
+      const bx = -5 + i*5, by = headY-4;
+      c.fillStyle = pink;
+      c.beginPath();
+      c.moveTo(bx-2.2, by); c.lineTo(bx, by+5+ (i%2)*1); c.lineTo(bx+2.2, by);
+      c.closePath(); c.fill();
+      // inner highlight
+      c.fillStyle = pinkHi;
+      c.beginPath();
+      c.moveTo(bx-0.8, by); c.lineTo(bx-0.2, by+3); c.lineTo(bx+0.4, by);
+      c.closePath(); c.fill();
+    }
+
+    // muzzle (peach)
+    const mg = c.createRadialGradient(3, headY+3, 1, 3, headY+4, 7);
+    mg.addColorStop(0, skinHi); mg.addColorStop(0.5, skinTan); mg.addColorStop(1, skinShade);
+    c.fillStyle = mg;
+    c.beginPath(); c.ellipse(2.5, headY+4, 6.5, 5.2, 0, 0, 6.283); c.fill();
+
+    // ── LARGE bright green eyes (cute anime style) ──
+    // white base — bigger than other characters
+    c.fillStyle = "#fff";
+    c.beginPath(); c.ellipse(-1.5, headY+1, 3.8, 5.5, 0, 0, 6.283); c.fill();
+    c.beginPath(); c.ellipse(5, headY+1, 3.8, 5.5, 0, 0, 6.283); c.fill();
+    // green iris — left
+    const amyIg1 = c.createRadialGradient(-1.5, headY+2, 0.5, -1.5, headY+2, 4);
+    amyIg1.addColorStop(0, greenHi); amyIg1.addColorStop(0.5, green); amyIg1.addColorStop(1, greenShade);
+    c.fillStyle = amyIg1;
+    c.beginPath(); c.ellipse(-1.5, headY+2, 2.8, 4, 0, 0, 6.283); c.fill();
+    // green iris — right
+    const amyIg2 = c.createRadialGradient(5, headY+2, 0.5, 5, headY+2, 4);
+    amyIg2.addColorStop(0, greenHi); amyIg2.addColorStop(0.5, green); amyIg2.addColorStop(1, greenShade);
+    c.fillStyle = amyIg2;
+    c.beginPath(); c.ellipse(5, headY+2, 2.8, 4, 0, 0, 6.283); c.fill();
+    // black pupils
+    c.fillStyle = "#0a0a14";
+    c.beginPath(); c.ellipse(-1.5, headY+2.5, 1.3, 2.2, 0, 0, 6.283); c.fill();
+    c.beginPath(); c.ellipse(5, headY+2.5, 1.3, 2.2, 0, 0, 6.283); c.fill();
+    // big white shines (anime sparkle style)
+    c.fillStyle = "#fff";
+    c.beginPath(); c.arc(-2, headY+0.5, 1.2, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(4.5, headY+0.5, 1.2, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(-0.7, headY+3.8, 0.6, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(5.8, headY+3.8, 0.6, 0, 6.283); c.fill();
+
+    // small nose
+    c.fillStyle = "#333";
+    c.beginPath(); c.ellipse(6.5, headY+3.5, 1.3, 1, 0, 0, 6.283); c.fill();
+
+    // cheerful open smile
+    c.fillStyle = "#3a1010";
+    c.beginPath();
+    c.moveTo(2, headY+6);
+    c.quadraticCurveTo(4.5, headY+9, 7, headY+6);
+    c.quadraticCurveTo(4.5, headY+7.4, 2, headY+6);
+    c.closePath(); c.fill();
+    // small pink tongue
+    c.fillStyle = "#ff6b8b";
+    c.beginPath();
+    c.arc(4.5, headY+7.4, 1.1, 0, Math.PI);
+    c.fill();
+    // little white teeth strip
+    c.fillStyle = "#fff";
+    c.fillRect(3.2, headY+6, 2.8, 0.7);
+
   } else {
     // ── Knuckles (default) ──
     const red = "#dc1c2c", redHi = "#ff4454", redShade = "#8b0e18", redDark = "#5a0a10";
@@ -2716,6 +3197,16 @@ document.getElementById("pick-knuckles").addEventListener("click", () => {
   state = State.SELECT;
   show("select");
 });
+document.getElementById("pick-shadow").addEventListener("click", () => {
+  selectedChar = "shadow";
+  state = State.SELECT;
+  show("select");
+});
+document.getElementById("pick-amy").addEventListener("click", () => {
+  selectedChar = "amy";
+  state = State.SELECT;
+  show("select");
+});
 document.getElementById("back-btn").addEventListener("click", () => {
   state = State.CHARSELECT;
   show("charselect");
@@ -2778,6 +3269,8 @@ function drawCharPreview(canvasId, charName) {
 drawCharPreview("preview-sonic", "sonic");
 drawCharPreview("preview-tails", "tails");
 drawCharPreview("preview-knuckles", "knuckles");
+drawCharPreview("preview-shadow", "shadow");
+drawCharPreview("preview-amy", "amy");
 </script>
 </body>
 </html>
