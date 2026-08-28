@@ -1929,7 +1929,8 @@ function drawMountain(x, y, w, h, baseColor, capColor) {
 //  hundred drawImage calls per frame instead of ~200k fillRects.
 // ───────────────────────────────────────────────────────────────
 const TEX = {};
-const TEXEL = 16;
+const TEXEL = 8;              // 8x8 texels over a 48px tile = 6px blocks.
+                              // 16x16 was 3px and read as noise, not pixel art.
 
 function texHash(a, b, c) {
   let h = (a * 73856093) ^ (b * 19349663) ^ (c * 83492791);
@@ -1947,35 +1948,41 @@ function bakeTexture(key, painter) {
   return cv;
 }
 
-// Flat noisy texel field, e.g. dirt or stone
-function bakeNoise(key, base, lo, hi, seed) {
+// Real block textures are clustered blotches, not TV static. We combine a
+// coarse 2x2 blotch layer with a finer speckle so the surface reads as
+// chunky pixel art at a glance instead of averaging out to flat colour.
+function texelShade(px, py, seed, spread) {
+  const coarse = texHash(px >> 1, py >> 1, seed);        // 2x2 blotches
+  const fine   = texHash(px, py, seed + 101);            // per-texel accent
+  const n = coarse * 0.72 + fine * 0.28;
+  return Math.round((n - 0.5) * 2 * spread);
+}
+
+function bakeNoise(key, base, spread, seed) {
   return bakeTexture(key, (c) => {
     for (let py = 0; py < TEXEL; py++) {
       for (let px = 0; px < TEXEL; px++) {
-        const n = texHash(px, py, seed);
-        c.fillStyle = shade(base, Math.round(lo + n * (hi - lo)));
+        c.fillStyle = shade(base, texelShade(px, py, seed, spread));
         c.fillRect(px, py, 1, 1);
       }
     }
   });
 }
 
-// Dirt block with a ragged grass fringe hanging over the top —
-// the single most recognisable Minecraft silhouette.
+// Dirt block with a ragged grass fringe hanging over the top — the single
+// most recognisable Minecraft silhouette.
 function bakeGrassSide(key, dirt, grass, seed) {
   return bakeTexture(key, (c) => {
     for (let py = 0; py < TEXEL; py++) {
       for (let px = 0; px < TEXEL; px++) {
-        const n = texHash(px, py, seed);
-        c.fillStyle = shade(dirt, Math.round(-22 + n * 40));
+        c.fillStyle = shade(dirt, texelShade(px, py, seed, 34));
         c.fillRect(px, py, 1, 1);
       }
     }
     for (let px = 0; px < TEXEL; px++) {
-      const depth = 2 + Math.floor(texHash(px, 99, seed) * 3);  // ragged edge
+      const depth = 1 + Math.floor(texHash(px, 99, seed) * 2.6);   // ragged edge
       for (let py = 0; py < depth; py++) {
-        const n = texHash(px, py, seed + 7);
-        c.fillStyle = shade(grass, Math.round(-18 + n * 36));
+        c.fillStyle = shade(grass, texelShade(px, py, seed + 7, 30));
         c.fillRect(px, py, 1, 1);
       }
     }
@@ -2018,14 +2025,19 @@ const VOXEL_THEMES = {
 
 function drawVoxelTile(x, y, tx, ty, theme, openAbove, openRight, D) {
   const v = (tx * 31 + ty * 17) % 3;                     // 3 texture variants
-  const dirt  = bakeNoise("d" + theme.seed + v, theme.dirt,  -26, 26, theme.seed + v);
-  const gtop  = bakeNoise("g" + theme.seed + v, theme.grass, -20, 24, theme.seed + v + 3);
+  const dirt  = bakeNoise("d" + theme.seed + v, theme.dirt,  38, theme.seed + v);
+  const gtop  = bakeNoise("g" + theme.seed + v, theme.grass, 32, theme.seed + v + 3);
   const gside = bakeGrassSide("s" + theme.seed + v, theme.dirt, theme.grass, theme.seed + v);
 
   // Flat per-face lighting, exactly how a voxel engine shades cubes
-  blitFace(openAbove ? gside : dirt, "front", x, y, D, 0.12);
-  if (openRight) blitFace(openAbove ? gside : dirt, "right", x, y, D, 0.34);
+  blitFace(openAbove ? gside : dirt, "front", x, y, D, 0.18);
+  if (openRight) blitFace(openAbove ? gside : dirt, "right", x, y, D, 0.42);
   if (openAbove) blitFace(gtop, "top", x, y, D, 0);
+
+  // Hard voxel seam between blocks — real block worlds have visible edges
+  ctx.strokeStyle = "rgba(0,0,0,0.22)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
 }
 
 function drawTiles() {
