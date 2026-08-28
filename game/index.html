@@ -469,7 +469,7 @@ const LEVELS = [
       "..............................Q.............==.=.................Q....f...........................................................f.........Q............................................Q..............",
       "......................................==*=....*...==*=..................................................................................................................................................",
       "........................................................................................*.*.............................................................................................................",
-      "..P...*.*.*..e.*..*..*...*..*......e......*.....*......e..s...*.....*......e......*..*..s...*..e..............*....e.........*......*..e.........s..*......*....e.........*....*....e.........B......G..",
+      "..P...*.*.*..e.*..*..*...*..*......e......*.....*......e..s...*.....*......e......*..*..s...*..e..............*....e.........*......*..e.........s..*......*....e.........*....*....e................G..",
       "##########################################################....##########################################################...################################....#########################################",
       "##########################################################....##########################################################...################################....#########################################",
       "##########################################################....##########################################################...################################....#########################################",
@@ -569,7 +569,7 @@ const LEVELS = [
       ".........................Q....*...*....................*....*..............*..Q.*..............*....*...................*....*....Q..............*....*...................*....*....Q....*..............",
       "..............................======...................======..............======..............======...................======...................======...................======.........======.........",
       "........................................................................................................................................................................................................",
-      "..P..*..*...*...*...*.c.................k....s..............c.........e...................k..............c.........s.........e..............k..............c.........s.........k.........c..B.e......G..",
+      "..P..*..*...*...*...*.c.................k....s..............c.........e...................k..............c.........s.........e..............k..............c.........s.........k.........c....e......G..",
       "##################################################...###############################################...###############################################...###############################################",
       "##################################################...###############################################...###############################################...###############################################",
       "##################################################...###############################################...###############################################...###############################################",
@@ -598,6 +598,56 @@ const LEVELS = [
       "#######################################################...#########################################################...####################################################...###########################",
       "#######################################################...#########################################################...####################################################...###########################",
       "#######################################################...#########################################################...####################################################...###########################",
+    ]
+  }
+  ,{
+    id: 7,
+    name: "SPIDER QUEEN'S LAIR",
+    blurb: "BOSS ARENA — dethrone the crowned queen.",
+    palette: {
+      sky1: "#3a1020", sky2: "#6a1830", sky3: "#2a0a18",
+      far:  "#5a1428", mid:  "#3e0e1e", near: "#240812",
+      groundTop: "#8a2a3a", groundBody: "#5a1622", groundShade: "#2e0a12",
+      accent: "#ffd45a"
+    },
+    map: [
+      "............................................................",
+      "............................................................",
+      "............................................................",
+      "...........................*.Q*..*..........................",
+      "..........................=======...........................",
+      "............Q..................................Q............",
+      "..........=====..............................=====..........",
+      "............................................................",
+      "..P...*.*......*..*...s.......B......s..*..*........*..*.G..",
+      "############################################################",
+      "############################################################",
+      "############################################################",
+    ]
+  }
+  ,{
+    id: 8,
+    name: "THE END",
+    blurb: "BOSS ARENA — slay the Ender Dragon.",
+    palette: {
+      sky1: "#140a24", sky2: "#241040", sky3: "#0a0416",
+      far:  "#2a1450", mid:  "#1c0d36", near: "#0e0620",
+      groundTop: "#c9c4a8", groundBody: "#3a3550", groundShade: "#1a1628",
+      accent: "#c384ee"
+    },
+    map: [
+      "............................................................",
+      "............................................................",
+      "............................................................",
+      "...........................*.Q*..*..........................",
+      "..........................=======...........................",
+      "............Q..................................Q............",
+      "..........=====..............................=====..........",
+      "............................................................",
+      "..P...*.*......*..*...s.........B....s..*..*........*..*.G..",
+      "############################################################",
+      "############################################################",
+      "############################################################",
     ]
   }
 ];
@@ -680,7 +730,7 @@ function loadLevel(idx) {
         goal = { x: px + TILE/2, y: py, reached: false, locked: false };
         tiles[y][x] = ".";
       } else if (ch === "B") {
-        const bossType = level.id === 5 ? "ender_dragon" : "spider_queen";
+        const bossType = (level.id === 8 || level.id === 5) ? "ender_dragon" : "spider_queen";
         entities.push({
           kind: "boss", bossType,
           x: px - 20, y: py - 24, w: 88, h: 84,
@@ -1824,17 +1874,24 @@ function drawMountain(x, y, w, h, baseColor, capColor) {
 
 function drawTiles() {
   const p = level.palette;
-  const startX = Math.floor(camera.x / TILE);
-  const endX = startX + Math.ceil(VIEW_W / TILE) + 1;
-  const startY = Math.floor(camera.y / TILE);
-  const endY = startY + Math.ceil(VIEW_H / TILE) + 1;
+  const D = 13;                       // 3D extrusion depth in px
+  const startX = Math.floor(camera.x / TILE) - 1;
+  const endX = startX + Math.ceil(VIEW_W / TILE) + 3;
+  const startY = Math.floor(camera.y / TILE) - 1;
+  const endY = startY + Math.ceil(VIEW_H / TILE) + 3;
 
+  const solid = (tx, ty) => { const t = tileAt(tx, ty); return t === "#" || t === "=" || t === "Q" || t === "q"; };
+
+  // Painter's algorithm for an up-right extrusion:
+  // farther tiles = higher rows and further-right columns, so draw
+  // ty ascending / tx descending and let nearer cubes paint over.
   for (let ty = startY; ty <= endY; ty++) {
-    for (let tx = startX; tx <= endX; tx++) {
+    for (let tx = endX; tx >= startX; tx--) {
       if (ty < 0 || ty >= tiles.length || tx < 0 || tx >= tiles[ty].length) continue;
       const ch = tiles[ty][tx];
       const x = tx * TILE - camera.x;
       const y = ty * TILE - camera.y;
+
       if (ch === "Q") { drawQBlock(x, y, false); continue; }
       if (ch === "q") { drawQBlock(x, y, true); continue; }
       if (ch === "/") { drawSlope(x, y, "/", p); continue; }
@@ -1842,124 +1899,164 @@ function drawTiles() {
       if (ch === "w") { drawWaterTile(x, y, tx, ty); continue; }
       if (ch === "W") { drawWaterfallTile(x, y, tx, ty); continue; }
       if (ch !== "#" && ch !== "=") continue;
-      const above = tileAt(tx, ty - 1);
-      const below = tileAt(tx, ty + 1);
-      const left = tileAt(tx - 1, ty);
-      const right = tileAt(tx + 1, ty);
-      const isTop = !(above === "#" || above === "=");
-      const isBottom = !(below === "#" || below === "=");
-      const isLeftEdge = !(left === "#" || left === "=");
-      const isRightEdge = !(right === "#" || right === "=");
 
-      // ── Body with vertical gradient ──
-      const g = ctx.createLinearGradient(x, y, x, y + TILE);
-      g.addColorStop(0, shade(p.groundBody, 10));
-      g.addColorStop(0.5, p.groundBody);
-      g.addColorStop(1, p.groundShade);
-      ctx.fillStyle = g;
+      const openAbove = !solid(tx, ty - 1);
+      const openRight = !solid(tx + 1, ty);
+      const openBelow = !solid(tx, ty + 1);
+      const openLeft  = !solid(tx - 1, ty);
+      const seed = tx * 73 + ty * 131;
+
+      // ── CAST SHADOW into the empty space below-left (grounds the cube) ──
+      if (openBelow) {
+        ctx.fillStyle = "rgba(0,0,0,0.22)";
+        ctx.beginPath();
+        ctx.moveTo(x, y + TILE);
+        ctx.lineTo(x + TILE, y + TILE);
+        ctx.lineTo(x + TILE - D, y + TILE + D);
+        ctx.lineTo(x - D, y + TILE + D);
+        ctx.closePath(); ctx.fill();
+      }
+
+      // ── FRONT FACE (mid tone) ──
+      const fg = ctx.createLinearGradient(x, y, x, y + TILE);
+      fg.addColorStop(0, p.groundBody);
+      fg.addColorStop(1, p.groundShade);
+      ctx.fillStyle = fg;
       ctx.fillRect(x, y, TILE, TILE);
 
-      // ── Deterministic noise speckles for texture ──
-      const seed = tx * 73 + ty * 131;
-      ctx.fillStyle = "rgba(0,0,0,0.08)";
-      for (let i = 0; i < 5; i++) {
-        const sx = x + ((seed + i*37) % 44) + 2;
-        const sy = y + ((seed*3 + i*53) % 40) + 6;
-        const sr = 1 + ((seed + i) % 2);
-        ctx.fillRect(sx, sy, sr, sr);
+      // Front-face texture: blocky sub-pixels (Minecraft-ish)
+      ctx.fillStyle = "rgba(0,0,0,0.10)";
+      for (let i = 0; i < 6; i++) {
+        const sx = x + 3 + ((seed + i * 37) % (TILE - 10));
+        const sy = y + 4 + ((seed * 3 + i * 53) % (TILE - 10));
+        ctx.fillRect(sx, sy, 4, 4);
       }
-      ctx.fillStyle = "rgba(255,255,255,0.08)";
-      for (let i = 0; i < 3; i++) {
-        const sx = x + ((seed*7 + i*41) % 42) + 3;
-        const sy = y + ((seed*11 + i*29) % 38) + 6;
-        ctx.fillRect(sx, sy, 1, 1);
+      ctx.fillStyle = "rgba(255,255,255,0.07)";
+      for (let i = 0; i < 4; i++) {
+        const sx = x + 4 + ((seed * 7 + i * 41) % (TILE - 12));
+        const sy = y + 5 + ((seed * 11 + i * 29) % (TILE - 12));
+        ctx.fillRect(sx, sy, 3, 3);
       }
 
-      // ── Top surface band (grass/crystal/cloud) ──
-      if (isTop) {
-        // base top color
-        const topGrad = ctx.createLinearGradient(x, y, x, y + 14);
-        topGrad.addColorStop(0, shade(p.groundTop, 20));
-        topGrad.addColorStop(1, p.groundTop);
-        ctx.fillStyle = topGrad;
-        ctx.fillRect(x, y, TILE, 14);
+      // Ambient occlusion in the inner corners
+      if (!openLeft) {
+        const ao = ctx.createLinearGradient(x, 0, x + 8, 0);
+        ao.addColorStop(0, "rgba(0,0,0,0.28)");
+        ao.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = ao; ctx.fillRect(x, y, 8, TILE);
+      }
+      if (!openAbove) {
+        const ao = ctx.createLinearGradient(0, y, 0, y + 8);
+        ao.addColorStop(0, "rgba(0,0,0,0.30)");
+        ao.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = ao; ctx.fillRect(x, y, TILE, 8);
+      }
 
-        if (level.id === 1) {
-          // grass blades, varied lengths and shades
-          for (let i = 0; i < 8; i++) {
-            const sx = x + 2 + i * 6;
-            const sh = 4 + ((seed + i*13) % 4);
-            ctx.fillStyle = i % 2 ? "#54a560" : "#7fc888";
-            ctx.fillRect(sx, y - sh, 2, sh);
+      // ── RIGHT SIDE FACE (darkest — light comes from upper-left) ──
+      if (openRight) {
+        const sg = ctx.createLinearGradient(x + TILE, y, x + TILE + D, y + TILE);
+        sg.addColorStop(0, shade(p.groundBody, -45));
+        sg.addColorStop(1, shade(p.groundShade, -55));
+        ctx.fillStyle = sg;
+        ctx.beginPath();
+        ctx.moveTo(x + TILE, y);
+        ctx.lineTo(x + TILE + D, y - D);
+        ctx.lineTo(x + TILE + D, y + TILE - D);
+        ctx.lineTo(x + TILE, y + TILE);
+        ctx.closePath(); ctx.fill();
+        // crisp edge
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // ── TOP FACE (brightest) ──
+      if (openAbove) {
+        const tg = ctx.createLinearGradient(x, y - D, x + D, y);
+        tg.addColorStop(0, shade(p.groundTop, 30));
+        tg.addColorStop(1, p.groundTop);
+        ctx.fillStyle = tg;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + D, y - D);
+        ctx.lineTo(x + TILE + D, y - D);
+        ctx.lineTo(x + TILE, y);
+        ctx.closePath(); ctx.fill();
+
+        // Specular sheen along the front lip of the top face
+        ctx.fillStyle = "rgba(255,255,255,0.28)";
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + D, y - D);
+        ctx.lineTo(x + TILE + D, y - D);
+        ctx.lineTo(x + TILE, y);
+        ctx.closePath();
+        ctx.save(); ctx.clip();
+        ctx.fillRect(x, y - 3, TILE + D, 3);
+        ctx.restore();
+
+        // Per-theme detail sitting ON the top face
+        if (level.id === 1 || level.id === 6) {
+          // grass blades poking up from the back edge of the top face
+          for (let i = 0; i < 7; i++) {
+            const gx = x + D + 2 + i * 6;
+            const gh = 4 + ((seed + i * 13) % 5);
+            ctx.fillStyle = i % 2 ? shade(p.groundTop, -25) : shade(p.groundTop, 35);
+            ctx.fillRect(gx, y - D - gh, 2, gh);
           }
-          // occasional flower
-          if (seed % 7 === 0) {
-            const fx = x + ((seed*5) % 36) + 6;
+          if (seed % 9 === 0) {
+            const fx = x + D + 10 + ((seed * 5) % 22);
             ctx.fillStyle = "#ffd84c";
-            ctx.beginPath(); ctx.arc(fx, y - 5, 2.5, 0, 6.283); ctx.fill();
+            ctx.beginPath(); ctx.arc(fx, y - D - 5, 2.5, 0, 6.283); ctx.fill();
             ctx.fillStyle = "#ff6b9d";
             for (let k = 0; k < 5; k++) {
-              const a = k * (Math.PI*2/5);
+              const a = k * (Math.PI * 2 / 5);
               ctx.beginPath();
-              ctx.arc(fx + Math.cos(a)*2.5, y - 5 + Math.sin(a)*2.5, 1.6, 0, 6.283);
+              ctx.arc(fx + Math.cos(a) * 2.6, y - D - 5 + Math.sin(a) * 2.6, 1.6, 0, 6.283);
               ctx.fill();
             }
           }
         } else if (level.id === 2) {
-          // crystal facets — diamond shapes on top
-          ctx.fillStyle = "rgba(255,255,255,0.55)";
+          // crystal facets on the top face
+          ctx.fillStyle = "rgba(255,255,255,0.6)";
           for (let i = 0; i < 3; i++) {
-            const sx = x + 6 + i * 14;
-            const sy = y + 4 + ((seed + i) % 3);
+            const sx = x + D + 6 + i * 13, sy = y - D + 5 + ((seed + i) % 4);
             ctx.beginPath();
-            ctx.moveTo(sx, sy - 3);
-            ctx.lineTo(sx + 3, sy);
-            ctx.lineTo(sx, sy + 3);
-            ctx.lineTo(sx - 3, sy);
+            ctx.moveTo(sx, sy - 3); ctx.lineTo(sx + 3, sy);
+            ctx.lineTo(sx, sy + 3); ctx.lineTo(sx - 3, sy);
             ctx.closePath(); ctx.fill();
           }
-          // animated sparkle
-          if ((seed % 9) === Math.floor(timeAccum * 2) % 9) {
-            const sx = x + ((seed*3) % 36) + 6;
-            ctx.fillStyle = "rgba(255,255,255,0.9)";
-            ctx.beginPath(); ctx.arc(sx, y + 5, 1.5, 0, 6.283); ctx.fill();
+        } else if (level.id === 3 || level.id === 4) {
+          // cloud puffs riding the top face
+          ctx.fillStyle = "rgba(255,255,255,0.9)";
+          ctx.beginPath();
+          ctx.arc(x + D + 10, y - D + 4, 7, 0, 6.283);
+          ctx.arc(x + D + 24, y - D + 2, 9, 0, 6.283);
+          ctx.arc(x + D + 38, y - D + 5, 7, 0, 6.283);
+          ctx.fill();
+        } else if (level.id === 5) {
+          // Minecraft grass: chunky pixel dither on the top face
+          ctx.fillStyle = shade(p.groundTop, -22);
+          for (let i = 0; i < 8; i++) {
+            const gx = x + D + ((seed * 3 + i * 11) % (TILE - 6));
+            const gy = y - D + ((seed + i * 7) % (D - 2));
+            ctx.fillRect(gx, gy, 4, 4);
           }
-        } else if (level.id === 3) {
-          // pillowy cloud top
-          ctx.fillStyle = "rgba(255,255,255,0.95)";
-          ctx.beginPath();
-          ctx.arc(x + 8,  y + 3, 8, 0, 6.283);
-          ctx.arc(x + 20, y + 1, 10, 0, 6.283);
-          ctx.arc(x + 34, y + 3, 9, 0, 6.283);
-          ctx.arc(x + 44, y + 5, 7, 0, 6.283);
-          ctx.fill();
-          // shadow underneath cloud puffs
-          ctx.fillStyle = "rgba(155,179,224,0.4)";
-          ctx.beginPath();
-          ctx.arc(x + 14, y + 12, 6, 0, 6.283);
-          ctx.arc(x + 30, y + 14, 7, 0, 6.283);
-          ctx.fill();
         }
+        // Outline the top face for that crisp voxel edge
+        ctx.strokeStyle = "rgba(0,0,0,0.25)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + D, y - D);
+        ctx.lineTo(x + TILE + D, y - D);
+        ctx.lineTo(x + TILE, y);
+        ctx.closePath(); ctx.stroke();
       }
 
-      // ── Edge bevels ──
-      if (isLeftEdge) {
-        const lg = ctx.createLinearGradient(x, 0, x + 6, 0);
-        lg.addColorStop(0, "rgba(0,0,0,0.25)");
-        lg.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = lg;
-        ctx.fillRect(x, y + (isTop ? 14 : 0), 6, TILE - (isTop ? 14 : 0));
-      }
-      if (isRightEdge) {
-        const rg = ctx.createLinearGradient(x + TILE - 6, 0, x + TILE, 0);
-        rg.addColorStop(0, "rgba(0,0,0,0)");
-        rg.addColorStop(1, "rgba(0,0,0,0.28)");
-        ctx.fillStyle = rg;
-        ctx.fillRect(x + TILE - 6, y + (isTop ? 14 : 0), 6, TILE - (isTop ? 14 : 0));
-      }
-      // ── Bottom shadow ──
-      if (isBottom) {
-        ctx.fillStyle = "rgba(0,0,0,0.32)";
+      // ── Bottom lip shading ──
+      if (openBelow) {
+        ctx.fillStyle = "rgba(0,0,0,0.38)";
         ctx.fillRect(x, y + TILE - 4, TILE, 4);
       }
     }
@@ -1967,45 +2064,81 @@ function drawTiles() {
 }
 
 function drawQBlock(x, y, spent) {
-  // Mystery block (yellow ? on bricks). When spent, drawn as gray/dim.
-  const wob = spent ? 0 : Math.sin(timeAccum * 4) * 1.2;
-  const baseHi = spent ? "#9a8e6c" : "#ffd45a";
-  const base = spent ? "#6e6850" : "#e0a420";
-  const baseShade = spent ? "#4a4434" : "#a06c10";
-  const grad = ctx.createLinearGradient(x, y, x, y + TILE);
-  grad.addColorStop(0, baseHi);
-  grad.addColorStop(0.5, base);
-  grad.addColorStop(1, baseShade);
-  ctx.fillStyle = grad;
-  ctx.fillRect(x + 2, y + 2 + wob, TILE - 4, TILE - 4);
-  // bevel highlights
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
-  ctx.fillRect(x + 2, y + 2 + wob, TILE - 4, 3);
-  ctx.fillRect(x + 2, y + 2 + wob, 3, TILE - 4);
-  ctx.fillStyle = "rgba(0,0,0,0.35)";
-  ctx.fillRect(x + 2, y + TILE - 5 + wob, TILE - 4, 3);
-  ctx.fillRect(x + TILE - 5, y + 2 + wob, 3, TILE - 4);
-  // glow halo while active
+  const D = 13;
+  const wob = spent ? 0 : Math.sin(timeAccum * 4) * 1.5;
+  const yy = y + wob;
+  const faceHi   = spent ? "#8e8468" : "#ffd45a";
+  const faceMid  = spent ? "#6e6850" : "#e0a420";
+  const faceLow  = spent ? "#4a4434" : "#a06c10";
+
+  // Glow halo while active
   if (!spent) {
-    const halo = ctx.createRadialGradient(x + TILE/2, y + TILE/2 + wob, 2, x + TILE/2, y + TILE/2, 32);
-    halo.addColorStop(0, "rgba(255,235,120,0.6)");
-    halo.addColorStop(1, "rgba(255,235,120,0)");
+    const halo = ctx.createRadialGradient(x + TILE/2, yy + TILE/2, 2, x + TILE/2, yy + TILE/2, 40);
+    halo.addColorStop(0, "rgba(255,220,110,0.55)");
+    halo.addColorStop(1, "rgba(255,220,110,0)");
     ctx.fillStyle = halo;
-    ctx.fillRect(x - 8, y - 8, TILE + 16, TILE + 16);
+    ctx.fillRect(x - 14, yy - 14, TILE + 28, TILE + 28);
   }
-  // ? glyph
-  ctx.fillStyle = spent ? "rgba(0,0,0,0.35)" : "#3a2410";
-  ctx.font = "bold 28px Trebuchet MS, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(spent ? "·" : "?", x + TILE/2, y + TILE/2 + wob);
-  ctx.textAlign = "start";
-  ctx.textBaseline = "alphabetic";
-  // rivets
+
+  // Right side face (dark)
+  const sg = ctx.createLinearGradient(x + TILE, yy, x + TILE + D, yy + TILE);
+  sg.addColorStop(0, faceLow);
+  sg.addColorStop(1, spent ? "#2e2a1e" : "#6e4808");
+  ctx.fillStyle = sg;
+  ctx.beginPath();
+  ctx.moveTo(x + TILE, yy);
+  ctx.lineTo(x + TILE + D, yy - D);
+  ctx.lineTo(x + TILE + D, yy + TILE - D);
+  ctx.lineTo(x + TILE, yy + TILE);
+  ctx.closePath(); ctx.fill();
+
+  // Top face (bright)
+  const tg = ctx.createLinearGradient(x, yy - D, x + D, yy);
+  tg.addColorStop(0, spent ? "#a89e80" : "#fff0a8");
+  tg.addColorStop(1, faceHi);
+  ctx.fillStyle = tg;
+  ctx.beginPath();
+  ctx.moveTo(x, yy);
+  ctx.lineTo(x + D, yy - D);
+  ctx.lineTo(x + TILE + D, yy - D);
+  ctx.lineTo(x + TILE, yy);
+  ctx.closePath(); ctx.fill();
+
+  // Front face
+  const fg = ctx.createLinearGradient(x, yy, x, yy + TILE);
+  fg.addColorStop(0, faceHi);
+  fg.addColorStop(0.5, faceMid);
+  fg.addColorStop(1, faceLow);
+  ctx.fillStyle = fg;
+  ctx.fillRect(x, yy, TILE, TILE);
+
+  // Beveled inner border
+  ctx.fillStyle = "rgba(255,255,255,0.40)";
+  ctx.fillRect(x + 2, yy + 2, TILE - 4, 3);
+  ctx.fillRect(x + 2, yy + 2, 3, TILE - 4);
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.fillRect(x + 2, yy + TILE - 5, TILE - 4, 3);
+  ctx.fillRect(x + TILE - 5, yy + 2, 3, TILE - 4);
+
+  // Rivets
   ctx.fillStyle = spent ? "#3a3424" : "#7a4e08";
-  for (const [rx, ry] of [[6,6],[TILE-8,6],[6,TILE-8],[TILE-8,TILE-8]]) {
-    ctx.beginPath(); ctx.arc(x + rx, y + ry + wob, 1.5, 0, 6.283); ctx.fill();
+  for (const [rx, ry] of [[7,7],[TILE-7,7],[7,TILE-7],[TILE-7,TILE-7]]) {
+    ctx.beginPath(); ctx.arc(x + rx, yy + ry, 2, 0, 6.283); ctx.fill();
   }
+
+  // "?" glyph with drop shadow for depth
+  ctx.font = "bold 30px Trebuchet MS, sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
+  ctx.fillText(spent ? "\u00b7" : "?", x + TILE/2 + 2, yy + TILE/2 + 2);
+  ctx.fillStyle = spent ? "rgba(0,0,0,0.4)" : "#3a2410";
+  ctx.fillText(spent ? "\u00b7" : "?", x + TILE/2, yy + TILE/2);
+  ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+
+  // Edge outlines
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, yy, TILE, TILE);
 }
 
 function drawSlope(x, y, dir, p) {
