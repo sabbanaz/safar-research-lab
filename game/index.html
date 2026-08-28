@@ -215,6 +215,18 @@
   .char-card.shadow:hover { border-color: rgba(230,57,70,1); }
   .char-card.amy { border-color: rgba(255,157,205,0.7); }
   .char-card.amy:hover { border-color: rgba(255,157,205,1); }
+  .char-card.steve { border-color: rgba(60,90,200,0.7); }
+  .char-card.steve:hover { border-color: rgba(60,90,200,1); }
+  .char-card.alex { border-color: rgba(74,157,58,0.7); }
+  .char-card.alex:hover { border-color: rgba(74,157,58,1); }
+  .char-card.pikachu { border-color: rgba(255,213,74,0.85); }
+  .char-card.pikachu:hover { border-color: rgba(255,213,74,1); }
+  .char-card.charmander { border-color: rgba(255,154,58,0.8); }
+  .char-card.charmander:hover { border-color: rgba(255,154,58,1); }
+  .char-card.bulbasaur { border-color: rgba(74,180,150,0.75); }
+  .char-card.bulbasaur:hover { border-color: rgba(74,180,150,1); }
+  .char-card.magikarp { border-color: rgba(232,90,58,0.75); }
+  .char-card.magikarp:hover { border-color: rgba(232,90,58,1); }
   .char-card .char-name {
     font-size: 20px; font-weight: 900; margin: 8px 0 4px; letter-spacing: 2px;
   }
@@ -274,6 +286,36 @@
           <canvas id="preview-amy" width="100" height="120"></canvas>
           <div class="char-name">AMY</div>
           <div class="char-tagline">Hammer power</div>
+        </div>
+        <div class="char-card steve" id="pick-steve">
+          <canvas id="preview-steve" width="100" height="120"></canvas>
+          <div class="char-name">STEVE</div>
+          <div class="char-tagline">Blocky builder</div>
+        </div>
+        <div class="char-card alex" id="pick-alex">
+          <canvas id="preview-alex" width="100" height="120"></canvas>
+          <div class="char-name">ALEX</div>
+          <div class="char-tagline">Adventurous</div>
+        </div>
+        <div class="char-card pikachu" id="pick-pikachu">
+          <canvas id="preview-pikachu" width="100" height="120"></canvas>
+          <div class="char-name">PIKACHU</div>
+          <div class="char-tagline">Electric mouse</div>
+        </div>
+        <div class="char-card charmander" id="pick-charmander">
+          <canvas id="preview-charmander" width="100" height="120"></canvas>
+          <div class="char-name">CHARMANDER</div>
+          <div class="char-tagline">Fire lizard</div>
+        </div>
+        <div class="char-card bulbasaur" id="pick-bulbasaur">
+          <canvas id="preview-bulbasaur" width="100" height="120"></canvas>
+          <div class="char-name">BULBASAUR</div>
+          <div class="char-tagline">Plant power</div>
+        </div>
+        <div class="char-card magikarp" id="pick-magikarp">
+          <canvas id="preview-magikarp" width="100" height="120"></canvas>
+          <div class="char-name">MAGIKARP</div>
+          <div class="char-tagline">Just splash</div>
         </div>
       </div>
       <button class="btn secondary" id="char-back-btn">← BACK</button>
@@ -508,6 +550,56 @@ const LEVELS = [
       "########################################wwwwwwwwwwwwwwwwww#####################################wwwwwwwwwwwwwwwwwwww#############################################wwwwwwwwwwwwwwwwwwww####################",
     ]
   }
+  ,{
+    id: 5,
+    name: "MINECRAFT WORLD",
+    blurb: "Blocky voxel adventure. Watch out for creepers!",
+    palette: {
+      sky1: "#7ec0ee", sky2: "#4a90d9", sky3: "#3a72b0",
+      far:  "#6b9dc7", mid:  "#4a7ba6", near: "#2e5a85",
+      groundTop: "#4a9d3a", groundBody: "#8b5a2b", groundShade: "#5a3818",
+      accent: "#ffd45a"
+    },
+    map: [
+      "........................................................................................................................................................................................................",
+      "........................................................................................................................................................................................................",
+      "............................................................*.*.*.*.*.*..................................*.*.*.*.*.*............................................*.*.*.*.*.*.............................",
+      ".....................................*.*..........................................*.*....................................................*.*............................................................",
+      "...................................====.........................................====...................................................====.............................................................",
+      ".........................Q....*...*....................*....*..............*..Q.*..............*....*...................*....*....Q..............*....*...................*....*....Q....*..............",
+      "..............................======...................======..............======..............======...................======...................======...................======.........======.........",
+      "........................................................................................................................................................................................................",
+      "..P..*..*...*...*...*.c.................k....s..............c.........e...................k..............c.........s.........e..............k..............c.........s.........k.........c....e......G..",
+      "##################################################...###############################################...###############################################...###############################################",
+      "##################################################...###############################################...###############################################...###############################################",
+      "##################################################...###############################################...###############################################...###############################################",
+    ]
+  }
+  ,{
+    id: 6,
+    name: "POKEMON ROUTE",
+    blurb: "Route 1 stroll. Rattatas and Zubats about!",
+    palette: {
+      sky1: "#a0e8ff", sky2: "#4fc3f7", sky3: "#3d97c9",
+      far:  "#6bb87a", mid:  "#4a9d5a", near: "#2e7a3a",
+      groundTop: "#7ed86a", groundBody: "#4a9d3a", groundShade: "#2e6a20",
+      accent: "#ffd45a"
+    },
+    map: [
+      "........................................................................................................................................................................................................",
+      "........................................................................................................................................................................................................",
+      ".................................................................*.*.*.*.*.*..................................*.*.*.*.*.*.............................*.*.*.*.*.*.......................................",
+      "............................................*.*...........................................*.*.................................................*.*.......................................................",
+      "..........................................====........................z.................====................................................====.....................z..................................",
+      "..............................Q....*....*...................*....*.........Q....*....*..............*....*..............z....Q....*....*...................*....*..............Q....*...................",
+      "...................................======...................======..............======..............======........................======...................======...................======..............",
+      "........................................................................................................................................................................................................",
+      "..P..*..*...*..*..*...*..r...................e....s.................r..........................e............s.r...........................e.........r................s...................e....r......G..",
+      "#######################################################...#########################################################...####################################################...###########################",
+      "#######################################################...#########################################################...####################################################...###########################",
+      "#######################################################...#########################################################...####################################################...###########################",
+    ]
+  }
 ];
 
 // ── Game state ────────────────────────────────────────────────
@@ -568,6 +660,18 @@ function loadLevel(idx) {
         tiles[y][x] = ".";
       } else if (ch === "j") {
         entities.push({ kind: "jellyfish", x: px + 4, y: py, w: 40, h: 44, baseY: py, t: Math.random()*6.28, alive: true });
+        tiles[y][x] = ".";
+      } else if (ch === "c") {
+        entities.push({ kind: "creeper", x: px + 4, y: py, w: 40, h: 44, vx: 0, vy: 0, fuse: 0, alive: true, t: 0 });
+        tiles[y][x] = ".";
+      } else if (ch === "k") {
+        entities.push({ kind: "skeleton", x: px + 4, y: py, w: 40, h: 46, vy: 0, cooldown: 1.5 + Math.random(), alive: true, t: 0 });
+        tiles[y][x] = ".";
+      } else if (ch === "r") {
+        entities.push({ kind: "rattata", x: px, y: py, w: 42, h: 34, vx: -80, vy: 0, alive: true, t: 0 });
+        tiles[y][x] = ".";
+      } else if (ch === "z") {
+        entities.push({ kind: "zubat", x: px, y: py, w: 44, h: 34, baseY: py, t: Math.random()*6.28, alive: true });
         tiles[y][x] = ".";
       } else if (ch === "s") {
         entities.push({ kind: "spring", x: px + 6, y: py + TILE - 20, w: TILE - 12, h: 20, charge: 0 });
@@ -1076,6 +1180,137 @@ function updateEntities(dt) {
           hurtPlayer();
         }
       }
+    } else if (e.kind === "creeper") {
+      if (!e.alive) continue;
+      e.t += dt;
+      // Fall + walk toward player
+      e.vy += GRAVITY * dt;
+      e.y += e.vy * dt;
+      if (rectVsTiles(e.x, e.y, e.w, e.h)) {
+        const step = e.vy > 0 ? -1 : 1;
+        while (rectVsTiles(e.x, e.y, e.w, e.h)) e.y += step;
+        e.vy = 0;
+      }
+      const targetVx = player.x < e.x ? -70 : 70;
+      e.vx += (targetVx - e.vx) * 2 * dt;
+      e.x += e.vx * dt;
+      if (rectVsTiles(e.x, e.y, e.w, e.h)) {
+        const step = e.vx > 0 ? -1 : 1;
+        while (rectVsTiles(e.x, e.y, e.w, e.h)) e.x += step;
+        e.vx = 0;
+      }
+      // Fuse when close to player
+      const distX = Math.abs((e.x + e.w/2) - (player.x + player.w/2));
+      const distY = Math.abs((e.y + e.h/2) - (player.y + player.h/2));
+      if (distX < 90 && distY < 80) e.fuse += dt;
+      else e.fuse = Math.max(0, e.fuse - dt * 0.5);
+      // Explode
+      if (e.fuse >= 1.4) {
+        e.alive = false;
+        shake = 0.5;
+        for (let i = 0; i < 40; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = 180 + Math.random() * 280;
+          particles.push({ x: e.x + e.w/2, y: e.y + e.h/2,
+            vx: Math.cos(a)*s, vy: Math.sin(a)*s - 60,
+            life: 0.7, maxLife: 0.7, color: i%2 ? "#7fd873" : "#3aa632", r: 4, gravity: 500 });
+        }
+        if (distX < 110 && distY < 90) hurtPlayer();
+      }
+      // Contact damage
+      if (e.alive && rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h })) {
+        if (player.vy > 0 && player.y + player.h - 14 < e.y) {
+          e.alive = false;
+          player.vy = BOUNCE_V;
+          spawnParticles(e.x + e.w/2, e.y + e.h/2, 14, { color: "#3aa632", life: 0.55, speed: 220 });
+        } else {
+          hurtPlayer();
+        }
+      }
+    } else if (e.kind === "skeleton") {
+      if (!e.alive) continue;
+      e.t += dt;
+      e.vy += GRAVITY * dt;
+      e.y += e.vy * dt;
+      if (rectVsTiles(e.x, e.y, e.w, e.h)) {
+        const step = e.vy > 0 ? -1 : 1;
+        while (rectVsTiles(e.x, e.y, e.w, e.h)) e.y += step;
+        e.vy = 0;
+      }
+      e.cooldown -= dt;
+      if (e.cooldown <= 0) {
+        // Shoot arrow toward player
+        const ax = e.x + e.w/2, ay = e.y + 12;
+        const dx = (player.x + player.w/2) - ax;
+        const dy = (player.y + player.h/2) - ay;
+        const d = Math.max(1, Math.sqrt(dx*dx + dy*dy));
+        entities.push({ kind: "arrow", x: ax, y: ay, w: 20, h: 6,
+          vx: dx/d * 380, vy: dy/d * 380, life: 3, alive: true });
+        e.cooldown = 2.2 + Math.random() * 0.8;
+      }
+      if (rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h })) {
+        if (player.vy > 0 && player.y + player.h - 14 < e.y) {
+          e.alive = false;
+          player.vy = BOUNCE_V;
+          spawnParticles(e.x + e.w/2, e.y + e.h/2, 14, { color: "#e8e8e8", life: 0.55, speed: 220 });
+        } else {
+          hurtPlayer();
+        }
+      }
+    } else if (e.kind === "arrow") {
+      if (!e.alive) continue;
+      e.life -= dt;
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+      if (rectVsTiles(e.x, e.y, e.w, e.h) || e.life <= 0) {
+        e.alive = false;
+        spawnParticles(e.x + e.w/2, e.y + e.h/2, 4, { color: "#a08050", life: 0.3, speed: 100, vy: 20, r: 2 });
+      }
+      if (e.alive && rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h })) {
+        e.alive = false;
+        hurtPlayer();
+      }
+    } else if (e.kind === "rattata") {
+      if (!e.alive) continue;
+      e.t += dt;
+      e.vy += GRAVITY * dt;
+      e.y += e.vy * dt;
+      if (rectVsTiles(e.x, e.y, e.w, e.h)) {
+        const step = e.vy > 0 ? -1 : 1;
+        while (rectVsTiles(e.x, e.y, e.w, e.h)) e.y += step;
+        e.vy = 0;
+      }
+      e.x += e.vx * dt;
+      if (rectVsTiles(e.x, e.y, e.w, e.h)) {
+        const step = e.vx > 0 ? -1 : 1;
+        while (rectVsTiles(e.x, e.y, e.w, e.h)) e.x += step;
+        e.vx = -e.vx;
+      }
+      const ahead = e.vx > 0 ? e.x + e.w + 2 : e.x - 2;
+      if (!isSolid(Math.floor(ahead / TILE), Math.floor((e.y + e.h + 4) / TILE))) e.vx = -e.vx;
+      if (rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h })) {
+        if (player.vy > 0 && player.y + player.h - 12 < e.y) {
+          e.alive = false;
+          player.vy = BOUNCE_V;
+          spawnParticles(e.x + e.w/2, e.y + e.h/2, 14, { color: "#a866ce", life: 0.55, speed: 220 });
+        } else {
+          hurtPlayer();
+        }
+      }
+    } else if (e.kind === "zubat") {
+      if (!e.alive) continue;
+      e.t += dt;
+      e.y = e.baseY + Math.sin(e.t * 2.2) * 46;
+      e.x -= 40 * dt;
+      if (rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h })) {
+        if (player.vy > 0 && player.y + player.h - 12 < e.y) {
+          e.alive = false;
+          player.vy = BOUNCE_V;
+          spawnParticles(e.x + e.w/2, e.y + e.h/2, 14, { color: "#7a4bce", life: 0.55, speed: 220 });
+        } else {
+          hurtPlayer();
+        }
+      }
     } else if (e.kind === "spring") {
       e.charge = Math.max(0, e.charge - dt * 3);
       if (rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h }) && player.vy > 0) {
@@ -1136,7 +1371,7 @@ function updateEntities(dt) {
       }
       // Kill enemies on contact
       for (const other of entities) {
-        if ((other.kind === "walker" || other.kind === "flyer" || other.kind === "jellyfish") && other.alive) {
+        if (["walker","flyer","jellyfish","creeper","skeleton","rattata","zubat"].includes(other.kind) && other.alive) {
           if (rectsOverlap(entityAABB(e), entityAABB(other))) {
             other.alive = false;
             e.alive = false;
@@ -1763,6 +1998,16 @@ function drawEntities() {
       drawFlyer(x, y, e);
     } else if (e.kind === "jellyfish" && e.alive) {
       drawJellyfish(x, y, e);
+    } else if (e.kind === "creeper" && e.alive) {
+      drawCreeper(x, y, e);
+    } else if (e.kind === "skeleton" && e.alive) {
+      drawSkeleton(x, y, e);
+    } else if (e.kind === "arrow" && e.alive) {
+      drawArrow(x, y, e);
+    } else if (e.kind === "rattata" && e.alive) {
+      drawRattata(x, y, e);
+    } else if (e.kind === "zubat" && e.alive) {
+      drawZubat(x, y, e);
     } else if (e.kind === "spring") {
       drawSpring(x, y, e);
     } else if (e.kind === "powerup" && e.alive) {
@@ -2020,6 +2265,217 @@ function drawJellyfish(x, y, e) {
                     cx - Math.sin(t*2)*8, cy + 22,
                     cx + Math.sin(t*2)*3, cy + 30);
   ctx.stroke();
+}
+
+function drawCreeper(x, y, e) {
+  const cx = x + e.w/2, cy = y + e.h/2;
+  // Fuse glow when about to explode
+  if (e.fuse > 0.3) {
+    const p = Math.min(1, e.fuse / 1.4);
+    const halo = ctx.createRadialGradient(cx, cy, 2, cx, cy, 40);
+    halo.addColorStop(0, `rgba(255,180,80,${p * 0.6})`);
+    halo.addColorStop(1, "rgba(255,180,80,0)");
+    ctx.fillStyle = halo;
+    ctx.fillRect(x - 10, y - 10, e.w + 20, e.h + 20);
+  }
+  const flash = e.fuse > 0.6 ? (Math.sin(e.fuse * 30) + 1) * 0.5 * 0.4 : 0;
+  const bodyCol = `rgb(${58 + flash*180},${166 + flash*60},${50 + flash*40})`;
+  // Body — blocky green pixel cube
+  ctx.fillStyle = bodyCol;
+  ctx.fillRect(x + 8, y + 14, e.w - 16, e.h - 14);
+  // Head — top blocky square
+  ctx.fillStyle = bodyCol;
+  ctx.fillRect(x + 6, y, e.w - 12, 18);
+  // Face — 2 black square eyes + open square mouth
+  ctx.fillStyle = "#0a0f0a";
+  ctx.fillRect(x + 12, y + 6, 5, 5);
+  ctx.fillRect(x + e.w - 17, y + 6, 5, 5);
+  ctx.fillRect(x + 15, y + 11, 4, 6);
+  ctx.fillRect(x + e.w - 19, y + 11, 4, 6);
+  ctx.fillRect(x + 18, y + 12, e.w - 36, 4);
+  // Pixel texture (darker green speckles)
+  ctx.fillStyle = "#2a7a24";
+  for (let i = 0; i < 8; i++) {
+    const px = x + 8 + ((i * 7) % (e.w - 18));
+    const py = y + 20 + ((i * 5) % (e.h - 22));
+    ctx.fillRect(px, py, 3, 3);
+  }
+  // 4 stubby legs
+  ctx.fillStyle = shade(bodyCol.replace("rgb(","").replace(")",""), -20);
+  ctx.fillRect(x + 10, y + e.h - 8, 6, 8);
+  ctx.fillRect(x + e.w - 16, y + e.h - 8, 6, 8);
+}
+
+function drawSkeleton(x, y, e) {
+  const cx = x + e.w/2, cy = y + e.h/2;
+  const swing = Math.sin(e.t * 3) * 2;
+  // Body — white bones
+  ctx.fillStyle = "#e8e8e8";
+  ctx.fillRect(x + 12, y + 16, e.w - 24, 20);
+  // Ribs
+  ctx.fillStyle = "#c0c0c0";
+  for (let i = 0; i < 3; i++) {
+    ctx.fillRect(x + 14, y + 18 + i * 6, e.w - 28, 2);
+  }
+  // Head — skull
+  ctx.fillStyle = "#f4f4f4";
+  ctx.fillRect(x + 10, y, e.w - 20, 16);
+  // Eye sockets
+  ctx.fillStyle = "#0a0a0a";
+  ctx.fillRect(x + 14, y + 5, 4, 5);
+  ctx.fillRect(x + e.w - 18, y + 5, 4, 5);
+  // Teeth
+  ctx.fillStyle = "#f4f4f4";
+  ctx.fillRect(x + 15, y + 12, e.w - 30, 3);
+  ctx.fillStyle = "#0a0a0a";
+  for (let i = 0; i < 3; i++) ctx.fillRect(x + 17 + i * 3, y + 12, 1, 3);
+  // Legs
+  ctx.fillStyle = "#e8e8e8";
+  ctx.fillRect(x + 14, y + e.h - 10, 5, 10);
+  ctx.fillRect(x + e.w - 19, y + e.h - 10, 5, 10);
+  // Bow (held forward)
+  ctx.strokeStyle = "#7a4a20";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x + e.w - 4 + swing, y + 20, 10, -Math.PI/2, Math.PI/2);
+  ctx.stroke();
+  // Bowstring
+  ctx.strokeStyle = "#c0c0c0";
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(x + e.w - 4 + swing, y + 10);
+  ctx.lineTo(x + e.w - 4 + swing, y + 30);
+  ctx.stroke();
+}
+
+function drawArrow(x, y, e) {
+  const angle = Math.atan2(e.vy, e.vx);
+  ctx.save();
+  ctx.translate(x + e.w/2, y + e.h/2);
+  ctx.rotate(angle);
+  // Shaft
+  ctx.fillStyle = "#7a4a20";
+  ctx.fillRect(-10, -1, 18, 2);
+  // Head
+  ctx.fillStyle = "#a0a0a0";
+  ctx.beginPath();
+  ctx.moveTo(10, -3);
+  ctx.lineTo(10, 3);
+  ctx.lineTo(14, 0);
+  ctx.closePath(); ctx.fill();
+  // Fletching
+  ctx.fillStyle = "#e63946";
+  ctx.beginPath();
+  ctx.moveTo(-10, -3);
+  ctx.lineTo(-6, 0);
+  ctx.lineTo(-10, 3);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawRattata(x, y, e) {
+  const cx = x + e.w/2, cy = y + e.h/2 + 2;
+  const bob = Math.sin(e.t * 8) * 1.5;
+  const dir = e.vx < 0 ? -1 : 1;
+  // Body — round purple
+  const bg = ctx.createRadialGradient(cx - 6, cy - 4, 2, cx, cy, 20);
+  bg.addColorStop(0, "#c084d8");
+  bg.addColorStop(0.7, "#a866ce");
+  bg.addColorStop(1, "#7a4b9a");
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + bob, 18, 12, 0, 0, 6.283);
+  ctx.fill();
+  // Cream belly
+  ctx.fillStyle = "#f0d0b0";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 4 + bob, 12, 6, 0, 0, 6.283);
+  ctx.fill();
+  // Head
+  ctx.fillStyle = "#a866ce";
+  ctx.beginPath();
+  ctx.arc(cx + dir * 12, cy - 4 + bob, 10, 0, 6.283);
+  ctx.fill();
+  // Big ears
+  ctx.fillStyle = "#7a4b9a";
+  ctx.beginPath();
+  ctx.moveTo(cx + dir * 8, cy - 12 + bob);
+  ctx.lineTo(cx + dir * 4, cy - 20 + bob);
+  ctx.lineTo(cx + dir * 12, cy - 14 + bob);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx + dir * 16, cy - 12 + bob);
+  ctx.lineTo(cx + dir * 20, cy - 20 + bob);
+  ctx.lineTo(cx + dir * 18, cy - 12 + bob);
+  ctx.fill();
+  // Eye
+  ctx.fillStyle = "#0a0a0a";
+  ctx.beginPath();
+  ctx.arc(cx + dir * 14, cy - 4 + bob, 2, 0, 6.283);
+  ctx.fill();
+  // Fang
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(cx + dir * 15, cy + bob, 2, 3);
+  // Tail
+  ctx.strokeStyle = "#a866ce";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx - dir * 14, cy + bob);
+  ctx.quadraticCurveTo(cx - dir * 26, cy - 8 + bob, cx - dir * 30, cy - 14 + bob);
+  ctx.stroke();
+}
+
+function drawZubat(x, y, e) {
+  const cx = x + e.w/2, cy = y + e.h/2;
+  const flap = Math.sin(e.t * 12) * 10;
+  // Wings
+  const wg = ctx.createLinearGradient(x, cy, x + e.w, cy);
+  wg.addColorStop(0, "#5a3a8a");
+  wg.addColorStop(0.5, "#7a4bce");
+  wg.addColorStop(1, "#5a3a8a");
+  ctx.fillStyle = wg;
+  // Left wing
+  ctx.beginPath();
+  ctx.moveTo(cx - 6, cy);
+  ctx.quadraticCurveTo(cx - 22, cy - flap - 4, cx - 20, cy + 6);
+  ctx.quadraticCurveTo(cx - 12, cy + 4, cx - 6, cy + 4);
+  ctx.closePath(); ctx.fill();
+  // Right wing
+  ctx.beginPath();
+  ctx.moveTo(cx + 6, cy);
+  ctx.quadraticCurveTo(cx + 22, cy - flap - 4, cx + 20, cy + 6);
+  ctx.quadraticCurveTo(cx + 12, cy + 4, cx + 6, cy + 4);
+  ctx.closePath(); ctx.fill();
+  // Body — purple sphere
+  const bg = ctx.createRadialGradient(cx - 3, cy - 3, 1, cx, cy, 10);
+  bg.addColorStop(0, "#a878ee");
+  bg.addColorStop(0.7, "#7a4bce");
+  bg.addColorStop(1, "#5a3a8a");
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.arc(cx, cy, 10, 0, 6.283); ctx.fill();
+  // Ears
+  ctx.fillStyle = "#5a3a8a";
+  ctx.beginPath();
+  ctx.moveTo(cx - 4, cy - 8);
+  ctx.lineTo(cx - 6, cy - 14);
+  ctx.lineTo(cx - 2, cy - 10);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx + 4, cy - 8);
+  ctx.lineTo(cx + 6, cy - 14);
+  ctx.lineTo(cx + 2, cy - 10);
+  ctx.fill();
+  // Open mouth (no eyes, just mouth)
+  ctx.fillStyle = "#8a1a3a";
+  ctx.beginPath();
+  ctx.arc(cx, cy + 2, 4, 0, 6.283);
+  ctx.fill();
+  // Fangs
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.moveTo(cx - 2, cy + 2); ctx.lineTo(cx - 1, cy + 6); ctx.lineTo(cx, cy + 2); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + 2); ctx.lineTo(cx + 1, cy + 6); ctx.lineTo(cx + 2, cy + 2); ctx.fill();
 }
 
 function drawFlyer(x, y, e) {
@@ -2936,6 +3392,833 @@ function drawCharBody(c, charName, a, legL, legR, armL, armR, bodyBob, pState, t
     c.fillStyle = "#fff";
     c.fillRect(3.2, headY+6, 2.8, 0.7);
 
+  } else if (charName === "steve") {
+    // ── Steve (Minecraft) — blocky voxel style ──
+    const skin = "#e8b48c", skinHi = "#f5c9a0", skinShade = "#a87848";
+    const hair = "#3a2410", hairHi = "#5a3820";
+    const shirt = "#3fbfd8", shirtHi = "#5cd3ea", shirtShade = "#256a80";
+    const pants = "#5a4fbf", pantsHi = "#7268d0", pantsShade = "#302a70";
+    const boot = "#3a2410", bootHi = "#5a3820";
+    const outline = "rgba(0,0,0,0.85)";
+
+    // ── LEGS (purple pants + brown boots as flat blocks) ──
+    function drawSteveLeg(offX, sw) {
+      const legTopX = offX - 2.5;
+      const legTopY = -16;
+      const legFwd = sw * 0.25;
+      // pants block 5x14
+      c.fillStyle = pants;
+      c.fillRect(legTopX + legFwd, legTopY, 5, 14);
+      c.fillStyle = pantsHi;
+      c.fillRect(legTopX + legFwd, legTopY, 5, 1);
+      c.fillRect(legTopX + legFwd, legTopY, 1, 14);
+      c.fillStyle = pantsShade;
+      c.fillRect(legTopX + legFwd + 4, legTopY, 1, 14);
+      c.fillRect(legTopX + legFwd, legTopY + 13, 5, 1);
+      c.strokeStyle = outline; c.lineWidth = 0.6;
+      c.strokeRect(legTopX + legFwd + 0.3, legTopY + 0.3, 4.4, 13.4);
+      // boot 5x2
+      c.fillStyle = boot;
+      c.fillRect(legTopX + legFwd, -2, 5, 2);
+      c.fillStyle = bootHi;
+      c.fillRect(legTopX + legFwd, -2, 5, 0.7);
+      c.strokeStyle = outline; c.lineWidth = 0.5;
+      c.strokeRect(legTopX + legFwd + 0.25, -1.75, 4.5, 1.5);
+    }
+    drawSteveLeg(-2.5, legL);
+    drawSteveLeg(2.5, legR);
+
+    // ── TORSO (cyan shirt 12x14 block) ──
+    const shirtX = -6, shirtTopY = torsoY - 6;
+    c.fillStyle = shirt;
+    c.fillRect(shirtX, shirtTopY, 12, 14);
+    c.fillStyle = shirtHi;
+    c.fillRect(shirtX, shirtTopY, 12, 1.3);
+    c.fillRect(shirtX, shirtTopY, 1.3, 14);
+    c.fillStyle = shirtShade;
+    c.fillRect(shirtX + 10.7, shirtTopY, 1.3, 14);
+    c.fillRect(shirtX, shirtTopY + 12.7, 12, 1.3);
+    // extra darker stripe on right to fake 3D
+    c.fillStyle = "rgba(0,0,0,0.15)";
+    c.fillRect(shirtX + 8, shirtTopY + 1, 4, 12);
+    c.strokeStyle = outline; c.lineWidth = 0.7;
+    c.strokeRect(shirtX + 0.35, shirtTopY + 0.35, 11.3, 13.3);
+
+    // ── ARMS (skin 4x12 blocks) ──
+    function drawSteveArm(side, sw) {
+      const armX = side > 0 ? 6 : -10;
+      const armY = shirtTopY + Math.max(-2, -sw * 0.25);
+      c.fillStyle = skin;
+      c.fillRect(armX, armY, 4, 12);
+      c.fillStyle = skinHi;
+      c.fillRect(armX, armY, 4, 1);
+      c.fillRect(armX, armY, 1, 12);
+      c.fillStyle = skinShade;
+      c.fillRect(armX + 3, armY, 1, 12);
+      c.fillRect(armX, armY + 11, 4, 1);
+      c.strokeStyle = outline; c.lineWidth = 0.6;
+      c.strokeRect(armX + 0.3, armY + 0.3, 3.4, 11.4);
+    }
+    drawSteveArm(-1, armL);
+    drawSteveArm(1, armR);
+
+    // ── HEAD (peach block 12x12) ──
+    const headX = -6, headTop = headY - 6;
+    c.fillStyle = skin;
+    c.fillRect(headX, headTop, 12, 12);
+    c.fillStyle = skinHi;
+    c.fillRect(headX, headTop, 12, 1.3);
+    c.fillRect(headX, headTop, 1.3, 12);
+    c.fillStyle = skinShade;
+    c.fillRect(headX + 10.7, headTop, 1.3, 12);
+    c.fillRect(headX, headTop + 10.7, 12, 1.3);
+    c.strokeStyle = outline; c.lineWidth = 0.7;
+    c.strokeRect(headX + 0.35, headTop + 0.35, 11.3, 11.3);
+
+    // ── HAIR (brown block on top of head) ──
+    c.fillStyle = hair;
+    c.fillRect(headX, headTop, 12, 4);
+    c.fillStyle = hairHi;
+    c.fillRect(headX, headTop, 12, 0.9);
+    c.fillRect(headX, headTop, 1, 4);
+    c.fillStyle = "rgba(0,0,0,0.35)";
+    c.fillRect(headX + 10, headTop, 2, 4);
+    c.strokeStyle = outline; c.lineWidth = 0.6;
+    c.strokeRect(headX + 0.3, headTop + 0.3, 11.4, 3.6);
+    // little hair chunks on forehead
+    c.fillStyle = hair;
+    c.fillRect(headX + 1, headTop + 4, 2, 1);
+    c.fillRect(headX + 5, headTop + 4, 2, 1);
+    c.fillRect(headX + 9, headTop + 4, 2, 1);
+
+    // ── FACE ──
+    // pixel eyes
+    c.fillStyle = "#fff";
+    c.fillRect(headX + 2.2, headTop + 5.6, 2.4, 2);
+    c.fillRect(headX + 7.4, headTop + 5.6, 2.4, 2);
+    c.fillStyle = "#0a0a14";
+    c.fillRect(headX + 3, headTop + 5.6, 1.5, 2);
+    c.fillRect(headX + 8.2, headTop + 5.6, 1.5, 2);
+    // brown mouth line
+    c.fillStyle = hair;
+    c.fillRect(headX + 4.5, headTop + 9, 3, 0.9);
+
+  } else if (charName === "alex") {
+    // ── Alex (Minecraft) — blocky, same style as Steve ──
+    const skin = "#eabb92", skinHi = "#f8d0aa", skinShade = "#a87848";
+    const hair = "#e07a3a", hairHi = "#ff9856", hairShade = "#8b4a20";
+    const shirt = "#4a9d3a", shirtHi = "#68bb52", shirtShade = "#286020";
+    const pants = "#7b8288", pantsHi = "#a0a8b0", pantsShade = "#4a5058";
+    const boot = "#2a2410", bootHi = "#4a3a20";
+    const outline = "rgba(0,0,0,0.85)";
+
+    // ── LEGS (grey pants + brown boots) ──
+    function drawAlexLeg(offX, sw) {
+      const legTopX = offX - 2.5;
+      const legTopY = -16;
+      const legFwd = sw * 0.25;
+      c.fillStyle = pants;
+      c.fillRect(legTopX + legFwd, legTopY, 5, 14);
+      c.fillStyle = pantsHi;
+      c.fillRect(legTopX + legFwd, legTopY, 5, 1);
+      c.fillRect(legTopX + legFwd, legTopY, 1, 14);
+      c.fillStyle = pantsShade;
+      c.fillRect(legTopX + legFwd + 4, legTopY, 1, 14);
+      c.fillRect(legTopX + legFwd, legTopY + 13, 5, 1);
+      c.strokeStyle = outline; c.lineWidth = 0.6;
+      c.strokeRect(legTopX + legFwd + 0.3, legTopY + 0.3, 4.4, 13.4);
+      c.fillStyle = boot;
+      c.fillRect(legTopX + legFwd, -2, 5, 2);
+      c.fillStyle = bootHi;
+      c.fillRect(legTopX + legFwd, -2, 5, 0.7);
+      c.strokeStyle = outline; c.lineWidth = 0.5;
+      c.strokeRect(legTopX + legFwd + 0.25, -1.75, 4.5, 1.5);
+    }
+    drawAlexLeg(-2.5, legL);
+    drawAlexLeg(2.5, legR);
+
+    // ── TORSO (green shirt 12x14) ──
+    const shirtX = -6, shirtTopY = torsoY - 6;
+    c.fillStyle = shirt;
+    c.fillRect(shirtX, shirtTopY, 12, 14);
+    c.fillStyle = shirtHi;
+    c.fillRect(shirtX, shirtTopY, 12, 1.3);
+    c.fillRect(shirtX, shirtTopY, 1.3, 14);
+    c.fillStyle = shirtShade;
+    c.fillRect(shirtX + 10.7, shirtTopY, 1.3, 14);
+    c.fillRect(shirtX, shirtTopY + 12.7, 12, 1.3);
+    c.fillStyle = "rgba(0,0,0,0.15)";
+    c.fillRect(shirtX + 8, shirtTopY + 1, 4, 12);
+    c.strokeStyle = outline; c.lineWidth = 0.7;
+    c.strokeRect(shirtX + 0.35, shirtTopY + 0.35, 11.3, 13.3);
+
+    // ── ARMS ──
+    function drawAlexArm(side, sw) {
+      const armX = side > 0 ? 6 : -10;
+      const armY = shirtTopY + Math.max(-2, -sw * 0.25);
+      c.fillStyle = skin;
+      c.fillRect(armX, armY, 4, 12);
+      c.fillStyle = skinHi;
+      c.fillRect(armX, armY, 4, 1);
+      c.fillRect(armX, armY, 1, 12);
+      c.fillStyle = skinShade;
+      c.fillRect(armX + 3, armY, 1, 12);
+      c.fillRect(armX, armY + 11, 4, 1);
+      c.strokeStyle = outline; c.lineWidth = 0.6;
+      c.strokeRect(armX + 0.3, armY + 0.3, 3.4, 11.4);
+    }
+    drawAlexArm(-1, armL);
+    drawAlexArm(1, armR);
+
+    // ── HEAD ──
+    const headX = -6, headTop = headY - 6;
+    c.fillStyle = skin;
+    c.fillRect(headX, headTop, 12, 12);
+    c.fillStyle = skinHi;
+    c.fillRect(headX, headTop, 12, 1.3);
+    c.fillRect(headX, headTop, 1.3, 12);
+    c.fillStyle = skinShade;
+    c.fillRect(headX + 10.7, headTop, 1.3, 12);
+    c.fillRect(headX, headTop + 10.7, 12, 1.3);
+    c.strokeStyle = outline; c.lineWidth = 0.7;
+    c.strokeRect(headX + 0.35, headTop + 0.35, 11.3, 11.3);
+
+    // ── HAIR (orange, with side braid) ──
+    c.fillStyle = hair;
+    c.fillRect(headX, headTop, 12, 4.2);
+    c.fillStyle = hairHi;
+    c.fillRect(headX, headTop, 12, 1);
+    c.fillRect(headX, headTop, 1, 4.2);
+    c.fillStyle = hairShade;
+    c.fillRect(headX + 10.5, headTop, 1.5, 4.2);
+    c.strokeStyle = outline; c.lineWidth = 0.6;
+    c.strokeRect(headX + 0.3, headTop + 0.3, 11.4, 3.9);
+    // side bangs
+    c.fillStyle = hair;
+    c.fillRect(headX + 0.5, headTop + 4, 2.5, 3);
+    c.fillRect(headX + 9, headTop + 4, 2.5, 3);
+    c.strokeStyle = outline; c.lineWidth = 0.4;
+    c.strokeRect(headX + 0.5, headTop + 4, 2.5, 3);
+    c.strokeRect(headX + 9, headTop + 4, 2.5, 3);
+    // braid dangling down on right side
+    c.fillStyle = hair;
+    c.fillRect(headX + 11.8, headTop + 4, 2, 8);
+    c.fillStyle = hairHi;
+    c.fillRect(headX + 11.8, headTop + 4, 0.7, 8);
+    c.fillStyle = hairShade;
+    c.fillRect(headX + 11.8, headTop + 7.5, 2, 0.6);
+    c.fillRect(headX + 11.8, headTop + 11, 2, 0.6);
+    c.strokeStyle = outline; c.lineWidth = 0.5;
+    c.strokeRect(headX + 11.8, headTop + 4, 2, 8);
+
+    // ── FACE ──
+    c.fillStyle = "#fff";
+    c.fillRect(headX + 2.2, headTop + 6, 2.4, 2);
+    c.fillRect(headX + 7.4, headTop + 6, 2.4, 2);
+    c.fillStyle = "#0a0a14";
+    c.fillRect(headX + 3, headTop + 6, 1.5, 2);
+    c.fillRect(headX + 8.2, headTop + 6, 1.5, 2);
+    c.fillStyle = hairShade;
+    c.fillRect(headX + 4.5, headTop + 9.4, 3, 0.9);
+
+  } else if (charName === "pikachu") {
+    // ── Pikachu — chibi round style ──
+    const yellow = "#ffd54a", yellowHi = "#fff2a8", yellowShade = "#d09818", yellowDark = "#8b5a08";
+    const brown = "#8b5a2b", brownDark = "#4a2810";
+    const red = "#e63946", redHi = "#ff7a86";
+
+    // ── TAIL (lightning bolt behind body, drawn first) ──
+    const tailWave = pState === "run" ? Math.sin(a * 1.2) * 3 : Math.sin(tAcc * 2) * 1.5;
+    c.save();
+    c.translate(-9, torsoY + 4);
+    // brown base band
+    c.fillStyle = brown;
+    c.beginPath();
+    c.moveTo(0, -3); c.lineTo(3, -3.5); c.lineTo(3, 3.5); c.lineTo(0, 3);
+    c.closePath(); c.fill();
+    c.strokeStyle = brownDark; c.lineWidth = 0.6;
+    c.stroke();
+    // yellow lightning bolt tail
+    c.fillStyle = yellow;
+    c.beginPath();
+    c.moveTo(0, -3);
+    c.lineTo(-4 + tailWave * 0.4, -7);
+    c.lineTo(-2 + tailWave * 0.4, -3);
+    c.lineTo(-8 + tailWave, -4);
+    c.lineTo(-5 + tailWave, 1);
+    c.lineTo(-11 + tailWave, 3);
+    c.lineTo(-2 + tailWave * 0.4, 4);
+    c.lineTo(0, 3);
+    c.closePath(); c.fill();
+    c.strokeStyle = yellowDark; c.lineWidth = 0.7;
+    c.stroke();
+    // shine
+    c.fillStyle = "rgba(255,255,255,0.35)";
+    c.beginPath();
+    c.moveTo(-3, -6); c.lineTo(-1, -3); c.lineTo(-6, -1);
+    c.closePath(); c.fill();
+    c.restore();
+
+    // ── LEGS (short yellow with darker paw pads) ──
+    function drawPikaLeg(offX, sw) {
+      const lg = c.createRadialGradient(offX - 1, -6 + sw * 0.2, 1, offX, -5 + sw * 0.2, 6);
+      lg.addColorStop(0, yellowHi); lg.addColorStop(0.5, yellow); lg.addColorStop(1, yellowShade);
+      c.fillStyle = lg;
+      c.beginPath(); c.ellipse(offX, -5 + sw * 0.2, 4.5, 5.5, 0, 0, 6.283); c.fill();
+      // paw pad (darker brown/yellow)
+      const footX = offX + sw * 0.2, footY = -1 + sw * 0.3;
+      c.fillStyle = yellowShade;
+      c.beginPath(); c.ellipse(footX, footY, 5, 2.4, 0, 0, 6.283); c.fill();
+      // three little brown toe pads
+      c.fillStyle = brown;
+      c.beginPath(); c.arc(footX - 2, footY + 0.3, 0.8, 0, 6.283); c.fill();
+      c.beginPath(); c.arc(footX, footY + 0.3, 0.8, 0, 6.283); c.fill();
+      c.beginPath(); c.arc(footX + 2, footY + 0.3, 0.8, 0, 6.283); c.fill();
+    }
+    drawPikaLeg(-5, legL);
+    drawPikaLeg(5, legR);
+
+    // ── BODY (yellow round-egg) ──
+    const bg = c.createRadialGradient(-3, torsoY - 3, 2, 0, torsoY + 1, 15);
+    bg.addColorStop(0, yellowHi); bg.addColorStop(0.55, yellow); bg.addColorStop(1, yellowShade);
+    c.fillStyle = bg;
+    c.beginPath(); c.ellipse(0, torsoY + 2, 11, 12, 0, 0, 6.283); c.fill();
+    // brown belly stripes
+    c.strokeStyle = brown; c.lineWidth = 0.8;
+    c.beginPath();
+    c.moveTo(-9, torsoY + 4); c.quadraticCurveTo(0, torsoY + 3, 9, torsoY + 4);
+    c.stroke();
+
+    // ── ARMS (short yellow stubby) ──
+    function drawPikaArm(side, sw) {
+      const baseX = side * 9;
+      const ag = c.createRadialGradient(baseX, torsoY + 2, 1, baseX, torsoY + 3, 4);
+      ag.addColorStop(0, yellowHi); ag.addColorStop(0.6, yellow); ag.addColorStop(1, yellowShade);
+      c.fillStyle = ag;
+      c.beginPath(); c.ellipse(baseX, torsoY + 3 + sw * 0.15, 3, 4.5, side * sw * 0.03, 0, 6.283); c.fill();
+      // paw
+      c.fillStyle = yellowShade;
+      c.beginPath(); c.arc(baseX + side * 1, torsoY + 7 + Math.abs(sw) * 0.12, 2.4, 0, 6.283); c.fill();
+    }
+    drawPikaArm(-1, armL);
+    drawPikaArm(1, armR);
+
+    // ── HEAD (bigger yellow round) ──
+    const hg = c.createRadialGradient(-3, headY - 3, 1, 0, headY + 1, 14);
+    hg.addColorStop(0, yellowHi); hg.addColorStop(0.5, yellow); hg.addColorStop(1, yellowShade);
+    c.fillStyle = hg;
+    c.beginPath(); c.arc(0, headY + 1, 12, 0, 6.283); c.fill();
+
+    // ── EARS (long triangular, yellow with black tips) ──
+    for (let side = -1; side <= 1; side += 2) {
+      c.save();
+      c.translate(side * 7, headY - 7);
+      c.rotate(side * 0.35);
+      // outer yellow
+      c.fillStyle = yellow;
+      c.beginPath();
+      c.moveTo(-2.5, 5); c.lineTo(0, -13); c.lineTo(3, 5);
+      c.closePath(); c.fill();
+      c.strokeStyle = yellowShade; c.lineWidth = 0.6;
+      c.stroke();
+      // inner shine
+      c.fillStyle = yellowHi;
+      c.beginPath();
+      c.moveTo(-1, 3); c.lineTo(0.3, -7); c.lineTo(1.6, 3);
+      c.closePath(); c.fill();
+      // black tip
+      c.fillStyle = "#0a0a0a";
+      c.beginPath();
+      c.moveTo(-1.2, -5); c.lineTo(0, -13); c.lineTo(2.5, -5);
+      c.closePath(); c.fill();
+      c.restore();
+    }
+
+    // ── RED CHEEK BLUSH SPOTS ──
+    const chg1 = c.createRadialGradient(-7, headY + 3, 0.5, -7, headY + 3, 3.2);
+    chg1.addColorStop(0, redHi); chg1.addColorStop(0.6, red); chg1.addColorStop(1, "#8b0e18");
+    c.fillStyle = chg1;
+    c.beginPath(); c.arc(-7, headY + 3, 2.8, 0, 6.283); c.fill();
+    const chg2 = c.createRadialGradient(7, headY + 3, 0.5, 7, headY + 3, 3.2);
+    chg2.addColorStop(0, redHi); chg2.addColorStop(0.6, red); chg2.addColorStop(1, "#8b0e18");
+    c.fillStyle = chg2;
+    c.beginPath(); c.arc(7, headY + 3, 2.8, 0, 6.283); c.fill();
+    // blush shine
+    c.fillStyle = "rgba(255,255,255,0.4)";
+    c.beginPath(); c.arc(-7.5, headY + 2.2, 0.9, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(6.5, headY + 2.2, 0.9, 0, 6.283); c.fill();
+
+    // ── EYES (large black ovals with white shine) ──
+    c.fillStyle = "#0a0a14";
+    c.beginPath(); c.ellipse(-3.5, headY, 2.2, 2.8, 0, 0, 6.283); c.fill();
+    c.beginPath(); c.ellipse(3.5, headY, 2.2, 2.8, 0, 0, 6.283); c.fill();
+    // white shines (cute anime style)
+    c.fillStyle = "#fff";
+    c.beginPath(); c.arc(-3, headY - 1.1, 1.1, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(4, headY - 1.1, 1.1, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(-4, headY + 1.2, 0.5, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(3, headY + 1.2, 0.5, 0, 6.283); c.fill();
+
+    // ── NOSE (tiny black dot) ──
+    c.fillStyle = "#0a0a14";
+    c.beginPath(); c.ellipse(0, headY + 3.2, 0.8, 0.5, 0, 0, 6.283); c.fill();
+
+    // ── MOUTH ("3" shape) ──
+    c.strokeStyle = "#3a1010"; c.lineWidth = 0.9; c.lineCap = "round";
+    c.beginPath();
+    c.moveTo(-2.5, headY + 4.5);
+    c.quadraticCurveTo(-1.2, headY + 5.8, 0, headY + 4.5);
+    c.quadraticCurveTo(1.2, headY + 5.8, 2.5, headY + 4.5);
+    c.stroke();
+
+  } else if (charName === "charmander") {
+    // ── Charmander — cute orange dragon-lizard ──
+    const orange = "#ff9a3a", orangeHi = "#ffbe6a", orangeShade = "#c86818", orangeDark = "#8b4210";
+    const cream = "#ffe0b0", creamHi = "#fff5d8", creamShade = "#d8b880";
+    const blue = "#4a90e0", blueHi = "#8ac0ff";
+
+    // ── TAIL WITH FLAME (drawn first, behind body) ──
+    const flick1 = Math.sin(tAcc * 12) * 0.18 + 1;
+    const flick2 = Math.sin(tAcc * 18 + 1.5) * 0.18 + 1;
+    const flick3 = Math.sin(tAcc * 9 + 0.7) * 0.2 + 1;
+    const tailWave = pState === "run" ? Math.sin(a * 1.3) * 3 : Math.sin(tAcc * 2) * 1.5;
+    // Curving orange tail
+    c.strokeStyle = orangeShade; c.lineWidth = 8; c.lineCap = "round";
+    c.beginPath();
+    c.moveTo(-4, torsoY + 8);
+    c.quadraticCurveTo(-16 + tailWave, torsoY + 2, -18 + tailWave, torsoY - 12);
+    c.stroke();
+    const tg = c.createLinearGradient(-4, torsoY + 8, -18, torsoY - 12);
+    tg.addColorStop(0, orangeHi); tg.addColorStop(0.6, orange); tg.addColorStop(1, orangeShade);
+    c.strokeStyle = tg; c.lineWidth = 6; c.lineCap = "round";
+    c.beginPath();
+    c.moveTo(-4, torsoY + 8);
+    c.quadraticCurveTo(-16 + tailWave, torsoY + 2, -18 + tailWave, torsoY - 12);
+    c.stroke();
+    // FLAME at tail tip
+    const flameX = -18 + tailWave, flameY = torsoY - 12;
+    const fg = c.createRadialGradient(flameX, flameY - 4, 1, flameX, flameY - 6, 14);
+    fg.addColorStop(0, "#ffffe0");
+    fg.addColorStop(0.35, "#ffcc4a");
+    fg.addColorStop(0.7, "#ff5a20");
+    fg.addColorStop(1, "rgba(255,60,0,0)");
+    c.fillStyle = fg;
+    c.beginPath();
+    c.moveTo(flameX - 5 * flick1, flameY);
+    c.quadraticCurveTo(flameX - 6, flameY - 6, flameX - 2, flameY - 10);
+    c.quadraticCurveTo(flameX, flameY - 16 * flick2, flameX + 3, flameY - 10);
+    c.quadraticCurveTo(flameX + 6, flameY - 5, flameX + 5 * flick3, flameY);
+    c.quadraticCurveTo(flameX, flameY + 2, flameX - 5 * flick1, flameY);
+    c.closePath(); c.fill();
+    // Inner brighter flame
+    c.fillStyle = "#fff5b0";
+    c.beginPath();
+    c.moveTo(flameX - 2, flameY - 1);
+    c.quadraticCurveTo(flameX - 2, flameY - 6, flameX, flameY - 11 * flick2);
+    c.quadraticCurveTo(flameX + 2, flameY - 6, flameX + 2, flameY - 1);
+    c.closePath(); c.fill();
+
+    // ── LEGS (small with claws) ──
+    function drawCharLeg(offX, sw) {
+      const legY = -7 + sw * 0.25;
+      const lg = c.createRadialGradient(offX - 1, legY - 2, 1, offX, legY, 5);
+      lg.addColorStop(0, orangeHi); lg.addColorStop(0.55, orange); lg.addColorStop(1, orangeShade);
+      c.fillStyle = lg;
+      c.beginPath(); c.ellipse(offX, legY, 4, 5.5, 0, 0, 6.283); c.fill();
+      const footX = offX + sw * 0.2, footY = -1;
+      c.fillStyle = orange;
+      c.beginPath(); c.ellipse(footX, footY, 5.5, 2.6, 0, 0, 6.283); c.fill();
+      c.fillStyle = orangeShade;
+      c.beginPath(); c.ellipse(footX, footY + 1.3, 5.5, 1.2, 0, 0, 6.283); c.fill();
+      // 3 cream claws
+      c.fillStyle = cream;
+      for (let i = -1; i <= 1; i++) {
+        c.beginPath();
+        c.moveTo(footX + i * 1.7 - 0.5, footY - 0.5);
+        c.lineTo(footX + i * 1.7, footY + 2);
+        c.lineTo(footX + i * 1.7 + 0.5, footY - 0.5);
+        c.closePath(); c.fill();
+      }
+    }
+    drawCharLeg(-4, legL);
+    drawCharLeg(4, legR);
+
+    // ── BODY (orange egg with cream belly) ──
+    const bg = c.createRadialGradient(-3, torsoY - 3, 2, 0, torsoY, 14);
+    bg.addColorStop(0, orangeHi); bg.addColorStop(0.55, orange); bg.addColorStop(1, orangeShade);
+    c.fillStyle = bg;
+    c.beginPath(); c.ellipse(0, torsoY, 11, 11, 0, 0, 6.283); c.fill();
+    // Cream belly
+    const belg = c.createRadialGradient(0, torsoY + 3, 1, 0, torsoY + 4, 8);
+    belg.addColorStop(0, creamHi); belg.addColorStop(0.6, cream); belg.addColorStop(1, creamShade);
+    c.fillStyle = belg;
+    c.beginPath();
+    c.moveTo(-6, torsoY - 1);
+    c.quadraticCurveTo(-8, torsoY + 5, -3, torsoY + 9);
+    c.quadraticCurveTo(0, torsoY + 10, 3, torsoY + 9);
+    c.quadraticCurveTo(8, torsoY + 5, 6, torsoY - 1);
+    c.quadraticCurveTo(3, torsoY + 1, 0, torsoY);
+    c.quadraticCurveTo(-3, torsoY + 1, -6, torsoY - 1);
+    c.closePath(); c.fill();
+    // small back scales
+    c.fillStyle = orangeDark;
+    for (let i = 0; i < 3; i++) {
+      const sx = -6 - i * 2, sy = torsoY - 5 + i * 3;
+      c.beginPath();
+      c.moveTo(sx, sy); c.lineTo(sx - 2, sy - 3); c.lineTo(sx - 1, sy + 0.5);
+      c.closePath(); c.fill();
+    }
+
+    // ── ARMS (tiny stub w/ 3 claw tips) ──
+    function drawCharArm(side, sw) {
+      const baseX = side * 9;
+      const ag = c.createRadialGradient(baseX, torsoY + 2, 1, baseX, torsoY + 3, 4);
+      ag.addColorStop(0, orangeHi); ag.addColorStop(0.55, orange); ag.addColorStop(1, orangeShade);
+      c.fillStyle = ag;
+      c.beginPath(); c.ellipse(baseX, torsoY + 3, 2.6, 4.5, side * sw * 0.03, 0, 6.283); c.fill();
+      const hx = baseX + side * 1.5, hy = torsoY + 7 + Math.abs(sw) * 0.12;
+      c.fillStyle = orangeShade;
+      c.beginPath(); c.arc(hx, hy, 2.2, 0, 6.283); c.fill();
+      // 3 tiny cream claws
+      c.strokeStyle = cream; c.lineWidth = 1; c.lineCap = "round";
+      for (let i = -1; i <= 1; i++) {
+        c.beginPath();
+        c.moveTo(hx + i * 1.1, hy + 1);
+        c.lineTo(hx + i * 1.1 + side * 0.4, hy + 3);
+        c.stroke();
+      }
+    }
+    drawCharArm(-1, armL);
+    drawCharArm(1, armR);
+
+    // ── HEAD ──
+    const hg = c.createRadialGradient(-3, headY - 3, 1, 0, headY + 1, 13);
+    hg.addColorStop(0, orangeHi); hg.addColorStop(0.5, orange); hg.addColorStop(1, orangeShade);
+    c.fillStyle = hg;
+    c.beginPath(); c.ellipse(0, headY + 1, 12, 11, 0, 0, 6.283); c.fill();
+
+    // ── SMALL EAR-FINS on top ──
+    for (let side = -1; side <= 1; side += 2) {
+      c.fillStyle = orange;
+      c.beginPath();
+      c.moveTo(side * 6, headY - 7);
+      c.lineTo(side * 10, headY - 12);
+      c.lineTo(side * 10, headY - 5);
+      c.closePath(); c.fill();
+      c.fillStyle = orangeShade;
+      c.beginPath();
+      c.moveTo(side * 7, headY - 7.5);
+      c.lineTo(side * 9.5, headY - 11);
+      c.lineTo(side * 9.5, headY - 6);
+      c.closePath(); c.fill();
+    }
+
+    // ── CREAM MUZZLE ──
+    const mg = c.createRadialGradient(2, headY + 3, 1, 2, headY + 4, 7);
+    mg.addColorStop(0, creamHi); mg.addColorStop(0.55, cream); mg.addColorStop(1, creamShade);
+    c.fillStyle = mg;
+    c.beginPath(); c.ellipse(2, headY + 4, 7, 4.5, 0, 0, 6.283); c.fill();
+
+    // ── BIG BLUE INNOCENT EYES ──
+    c.fillStyle = "#fff";
+    c.beginPath(); c.ellipse(-3, headY - 1, 3.3, 4.2, 0, 0, 6.283); c.fill();
+    c.beginPath(); c.ellipse(4, headY - 1, 3.3, 4.2, 0, 0, 6.283); c.fill();
+    const ei1 = c.createRadialGradient(-3, headY - 0.5, 0.5, -3, headY, 3);
+    ei1.addColorStop(0, blueHi); ei1.addColorStop(0.5, blue); ei1.addColorStop(1, "#1e4880");
+    c.fillStyle = ei1;
+    c.beginPath(); c.ellipse(-3, headY, 2.3, 3.2, 0, 0, 6.283); c.fill();
+    const ei2 = c.createRadialGradient(4, headY - 0.5, 0.5, 4, headY, 3);
+    ei2.addColorStop(0, blueHi); ei2.addColorStop(0.5, blue); ei2.addColorStop(1, "#1e4880");
+    c.fillStyle = ei2;
+    c.beginPath(); c.ellipse(4, headY, 2.3, 3.2, 0, 0, 6.283); c.fill();
+    // pupils
+    c.fillStyle = "#0a0a14";
+    c.beginPath(); c.ellipse(-3, headY + 0.5, 1.1, 2, 0, 0, 6.283); c.fill();
+    c.beginPath(); c.ellipse(4, headY + 0.5, 1.1, 2, 0, 0, 6.283); c.fill();
+    // white shines
+    c.fillStyle = "#fff";
+    c.beginPath(); c.arc(-3.6, headY - 1.2, 0.9, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(3.4, headY - 1.2, 0.9, 0, 6.283); c.fill();
+
+    // ── FRIENDLY SMILE ──
+    c.strokeStyle = "#6e2818"; c.lineWidth = 1.1; c.lineCap = "round";
+    c.beginPath();
+    c.moveTo(-1, headY + 4.8);
+    c.quadraticCurveTo(2, headY + 7, 5.5, headY + 4.8);
+    c.stroke();
+
+  } else if (charName === "bulbasaur") {
+    // ── Bulbasaur — chubby toad-dinosaur with plant bulb ──
+    const teal = "#7fd3d3", tealHi = "#a8e8e8", tealShade = "#4a9a9a", tealDark = "#286060";
+    const green = "#3d8b54", greenHi = "#5ec078", greenShade = "#1e5a2a";
+    const bulbGreen = "#7fd35a", bulbHi = "#c0f090", bulbShade = "#4a7f28";
+    const red = "#e63946", redHi = "#ff5a6a";
+
+    // ── PLANT BULB (behind body, drawn first) ──
+    const bulbCx = -3, bulbCy = torsoY - 8;
+    const bulbG = c.createRadialGradient(bulbCx - 4, bulbCy - 4, 2, bulbCx, bulbCy, 15);
+    bulbG.addColorStop(0, bulbHi);
+    bulbG.addColorStop(0.5, bulbGreen);
+    bulbG.addColorStop(1, bulbShade);
+    c.fillStyle = bulbG;
+    c.beginPath(); c.arc(bulbCx, bulbCy, 13, 0, 6.283); c.fill();
+    // swirl pattern
+    c.strokeStyle = "rgba(30,60,42,0.55)"; c.lineWidth = 1.2;
+    c.beginPath(); c.arc(bulbCx, bulbCy, 8, 0.5, 3.7); c.stroke();
+    c.strokeStyle = "rgba(30,60,42,0.4)"; c.lineWidth = 1;
+    c.beginPath(); c.arc(bulbCx + 3, bulbCy + 2, 5, 2, 5.5); c.stroke();
+    // light blue swirl highlight
+    c.strokeStyle = "rgba(160,240,255,0.5)"; c.lineWidth = 1;
+    c.beginPath(); c.arc(bulbCx - 2, bulbCy - 3, 6, 3.6, 5.8); c.stroke();
+    // shine
+    c.fillStyle = "rgba(255,255,255,0.35)";
+    c.beginPath(); c.arc(bulbCx - 5, bulbCy - 5, 3, 0, 6.283); c.fill();
+    // little leaf buds at top
+    c.fillStyle = green;
+    c.beginPath();
+    c.moveTo(bulbCx - 2, bulbCy - 12);
+    c.quadraticCurveTo(bulbCx - 6, bulbCy - 15, bulbCx - 2, bulbCy - 17);
+    c.quadraticCurveTo(bulbCx + 1, bulbCy - 14, bulbCx, bulbCy - 11);
+    c.closePath(); c.fill();
+    c.fillStyle = greenHi;
+    c.beginPath();
+    c.moveTo(bulbCx + 1, bulbCy - 13);
+    c.quadraticCurveTo(bulbCx + 5, bulbCy - 16, bulbCx + 3, bulbCy - 18);
+    c.quadraticCurveTo(bulbCx + 1, bulbCy - 15, bulbCx + 1, bulbCy - 11);
+    c.closePath(); c.fill();
+
+    // ── LEGS (4 stubby; back pair smaller/darker, front pair bigger) ──
+    function drawBulbaLeg(offX, sw, back) {
+      const legY = -5 + sw * (back ? 0.15 : 0.28);
+      const scale = back ? 0.85 : 1;
+      const lg = c.createRadialGradient(offX - 1, legY - 2, 1, offX, legY, 5);
+      if (back) {
+        lg.addColorStop(0, tealShade); lg.addColorStop(0.5, tealShade); lg.addColorStop(1, tealDark);
+      } else {
+        lg.addColorStop(0, tealHi); lg.addColorStop(0.5, teal); lg.addColorStop(1, tealShade);
+      }
+      c.fillStyle = lg;
+      c.beginPath(); c.ellipse(offX, legY, 4 * scale, 5 * scale, 0, 0, 6.283); c.fill();
+      // foot
+      const footX = offX + sw * 0.15, footY = -1;
+      c.fillStyle = back ? tealShade : teal;
+      c.beginPath(); c.ellipse(footX, footY, 5 * scale, 2.5 * scale, 0, 0, 6.283); c.fill();
+      // green claws (3 tips)
+      c.fillStyle = green;
+      for (let i = -1; i <= 1; i++) {
+        c.beginPath();
+        c.moveTo(footX + i * 1.5 * scale - 0.4, footY - 0.4);
+        c.lineTo(footX + i * 1.5 * scale, footY + 1.6);
+        c.lineTo(footX + i * 1.5 * scale + 0.4, footY - 0.4);
+        c.closePath(); c.fill();
+      }
+    }
+    // back legs
+    drawBulbaLeg(-9, legR * 0.6, true);
+    drawBulbaLeg(9, legL * 0.6, true);
+    // front legs
+    drawBulbaLeg(-5, legL, false);
+    drawBulbaLeg(5, legR, false);
+
+    // ── BODY (round quadruped) ──
+    const bg = c.createRadialGradient(-3, torsoY - 2, 2, 0, torsoY + 2, 14);
+    bg.addColorStop(0, tealHi); bg.addColorStop(0.5, teal); bg.addColorStop(1, tealShade);
+    c.fillStyle = bg;
+    c.beginPath(); c.ellipse(0, torsoY + 2, 13, 10, 0, 0, 6.283); c.fill();
+    // Dark spots on back
+    c.fillStyle = tealDark;
+    c.beginPath(); c.arc(-6, torsoY - 2, 1.6, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(2, torsoY - 4, 1.4, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(7, torsoY - 1, 1.5, 0, 6.283); c.fill();
+
+    // ── HEAD (broad flat) ──
+    const hg = c.createRadialGradient(-3, headY - 2, 1, 0, headY + 2, 14);
+    hg.addColorStop(0, tealHi); hg.addColorStop(0.5, teal); hg.addColorStop(1, tealShade);
+    c.fillStyle = hg;
+    c.beginPath(); c.ellipse(0, headY + 3, 12, 9, 0, 0, 6.283); c.fill();
+
+    // Forehead spots
+    c.fillStyle = tealDark;
+    c.beginPath(); c.arc(-6, headY, 1.3, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(6, headY - 1, 1.3, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(0, headY - 4, 1.2, 0, 6.283); c.fill();
+
+    // ── POINTED EARS ──
+    for (let side = -1; side <= 1; side += 2) {
+      c.fillStyle = teal;
+      c.beginPath();
+      c.moveTo(side * 7, headY - 2);
+      c.lineTo(side * 10, headY - 8);
+      c.lineTo(side * 5, headY - 3);
+      c.closePath(); c.fill();
+      c.fillStyle = tealShade;
+      c.beginPath();
+      c.moveTo(side * 8, headY - 3);
+      c.lineTo(side * 9.5, headY - 7);
+      c.lineTo(side * 7, headY - 4);
+      c.closePath(); c.fill();
+    }
+
+    // ── BIG RED EYES with slit pupils ──
+    c.fillStyle = "#fff";
+    c.beginPath(); c.ellipse(-4, headY + 2, 3, 3.6, 0, 0, 6.283); c.fill();
+    c.beginPath(); c.ellipse(4, headY + 2, 3, 3.6, 0, 0, 6.283); c.fill();
+    const rg1 = c.createRadialGradient(-4, headY + 2, 0.5, -4, headY + 2, 3);
+    rg1.addColorStop(0, redHi); rg1.addColorStop(0.5, red); rg1.addColorStop(1, "#8b0e18");
+    c.fillStyle = rg1;
+    c.beginPath(); c.ellipse(-4, headY + 2, 2.2, 3, 0, 0, 6.283); c.fill();
+    const rg2 = c.createRadialGradient(4, headY + 2, 0.5, 4, headY + 2, 3);
+    rg2.addColorStop(0, redHi); rg2.addColorStop(0.5, red); rg2.addColorStop(1, "#8b0e18");
+    c.fillStyle = rg2;
+    c.beginPath(); c.ellipse(4, headY + 2, 2.2, 3, 0, 0, 6.283); c.fill();
+    // black slit pupils
+    c.fillStyle = "#0a0a14";
+    c.beginPath(); c.ellipse(-4, headY + 2, 0.55, 2.4, 0, 0, 6.283); c.fill();
+    c.beginPath(); c.ellipse(4, headY + 2, 0.55, 2.4, 0, 0, 6.283); c.fill();
+    // shine
+    c.fillStyle = "#fff";
+    c.beginPath(); c.arc(-4.6, headY + 1, 0.7, 0, 6.283); c.fill();
+    c.beginPath(); c.arc(3.4, headY + 1, 0.7, 0, 6.283); c.fill();
+
+    // ── FRIENDLY FANGED GRIN ──
+    c.strokeStyle = "#3a1010"; c.lineWidth = 1; c.lineCap = "round";
+    c.beginPath();
+    c.moveTo(-4, headY + 7);
+    c.quadraticCurveTo(0, headY + 9, 4, headY + 7);
+    c.stroke();
+    // Two little fangs
+    c.fillStyle = "#fff";
+    c.beginPath();
+    c.moveTo(-2.2, headY + 7.3); c.lineTo(-1.7, headY + 8.6); c.lineTo(-1.2, headY + 7.3);
+    c.closePath(); c.fill();
+    c.beginPath();
+    c.moveTo(1.2, headY + 7.3); c.lineTo(1.7, headY + 8.6); c.lineTo(2.2, headY + 7.3);
+    c.closePath(); c.fill();
+
+  } else if (charName === "magikarp") {
+    // ── Magikarp — floppy fish, awkward and charming ──
+    const orange = "#e85a3a", orangeHi = "#ff8a6a", orangeShade = "#a83820", orangeDark = "#6a2010";
+    const yellow = "#f0d020", yellowHi = "#ffe860", yellowShade = "#a08018";
+    const cream = "#fff5d8";
+
+    // Flop rotation and vertical bob when "running"
+    const isRunning = pState === "run";
+    const flopAngle = isRunning ? Math.sin(a * 2) * 0.28 : Math.sin(tAcc * 2) * 0.05;
+    const flopY = isRunning ? -Math.abs(Math.sin(a)) * 9 : Math.sin(tAcc * 2) * 1.5;
+    const tailWag = Math.sin((isRunning ? a * 2 : tAcc * 3) + 1.5) * 6;
+
+    c.save();
+    // Center fish around the body area, apply flop transform
+    c.translate(0, torsoY + 4 + flopY);
+    c.rotate(flopAngle);
+
+    // ── TAIL FIN (behind body) ──
+    c.fillStyle = yellow;
+    c.beginPath();
+    c.moveTo(-18, 0);
+    c.lineTo(-26, -9 + tailWag);
+    c.lineTo(-22, 0);
+    c.lineTo(-26, 9 + tailWag);
+    c.closePath(); c.fill();
+    c.strokeStyle = yellowShade; c.lineWidth = 0.8;
+    c.stroke();
+    // Tail fin ridges
+    c.strokeStyle = yellowShade; c.lineWidth = 0.6;
+    c.beginPath();
+    c.moveTo(-22, 0); c.lineTo(-26, -6 + tailWag);
+    c.moveTo(-22, 0); c.lineTo(-26, 6 + tailWag);
+    c.stroke();
+
+    // ── BODY (elongated fish) ──
+    const bg = c.createRadialGradient(4, -4, 3, 0, 0, 22);
+    bg.addColorStop(0, orangeHi); bg.addColorStop(0.55, orange); bg.addColorStop(1, orangeShade);
+    c.fillStyle = bg;
+    c.beginPath(); c.ellipse(0, 0, 20, 11, 0, 0, 6.283); c.fill();
+
+    // ── White belly stripe ──
+    c.fillStyle = cream;
+    c.beginPath(); c.ellipse(-2, 6, 14, 2.8, 0, 0, 6.283); c.fill();
+
+    // ── Scale texture (small overlapping arcs) ──
+    c.strokeStyle = orangeDark; c.lineWidth = 0.5;
+    for (let row = 0; row < 3; row++) {
+      const sy = -6 + row * 4;
+      for (let col = 0; col < 8; col++) {
+        const sx = -15 + col * 3.5 + (row % 2) * 1.5;
+        if (sx * sx / 400 + sy * sy / 121 > 0.85) continue;
+        c.beginPath();
+        c.arc(sx, sy, 1.8, Math.PI * 1.1, Math.PI * 1.9);
+        c.stroke();
+      }
+    }
+
+    // ── DORSAL FIN on top ──
+    c.fillStyle = yellow;
+    c.beginPath();
+    c.moveTo(-6, -10);
+    c.lineTo(-3, -18);
+    c.lineTo(0, -13);
+    c.lineTo(3, -18);
+    c.lineTo(6, -10);
+    c.closePath(); c.fill();
+    c.strokeStyle = yellowShade; c.lineWidth = 0.7;
+    c.stroke();
+    // fin ridges
+    c.strokeStyle = yellowShade; c.lineWidth = 0.5;
+    c.beginPath();
+    c.moveTo(-3, -16); c.lineTo(-3, -10);
+    c.moveTo(3, -16); c.lineTo(3, -10);
+    c.stroke();
+
+    // ── PECTORAL FIN (side, bottom) ──
+    c.fillStyle = yellowHi;
+    c.beginPath();
+    c.moveTo(-2, 8);
+    c.lineTo(-6, 14);
+    c.lineTo(4, 12);
+    c.closePath(); c.fill();
+    c.strokeStyle = yellowShade; c.lineWidth = 0.6;
+    c.stroke();
+    c.beginPath();
+    c.moveTo(-2, 10); c.lineTo(-4, 13);
+    c.stroke();
+
+    // ── Head hint (rounder front bump) ──
+    c.fillStyle = orangeHi;
+    c.beginPath(); c.arc(9, -1, 8, 0, 6.283); c.fill();
+    c.fillStyle = "rgba(168,56,32,0.35)";
+    c.beginPath(); c.arc(12, 3, 7, 0, 6.283); c.fill();
+
+    // ── Big empty round eye ──
+    c.fillStyle = "#fff";
+    c.beginPath(); c.arc(11, -3, 3.3, 0, 6.283); c.fill();
+    c.fillStyle = "#0a0a14";
+    c.beginPath(); c.arc(11, -3, 1.4, 0, 6.283); c.fill();
+    c.fillStyle = "#fff";
+    c.beginPath(); c.arc(11.8, -3.8, 0.7, 0, 6.283); c.fill();
+
+    // ── Small round mouth stuck open ──
+    c.fillStyle = "#3a1010";
+    c.beginPath(); c.arc(17, 2, 2.2, 0, 6.283); c.fill();
+    c.fillStyle = orangeShade;
+    c.beginPath(); c.arc(17, 2.8, 1.4, 0, Math.PI); c.fill();
+    // dumb outline highlight
+    c.strokeStyle = orangeDark; c.lineWidth = 0.6;
+    c.beginPath(); c.arc(17, 2, 2.2, 0, 6.283); c.stroke();
+
+    // ── YELLOW WHISKERS (2 on each side of face) ──
+    c.strokeStyle = yellow; c.lineWidth = 1.5; c.lineCap = "round";
+    // upper right whiskers (near mouth, to the right)
+    c.beginPath();
+    c.moveTo(16, 4); c.quadraticCurveTo(20, 6, 23, 4);
+    c.moveTo(16, 5); c.quadraticCurveTo(19, 8, 22, 7);
+    // whiskers going the other way from the head
+    c.moveTo(6, 6); c.quadraticCurveTo(2, 10, -2, 9);
+    c.moveTo(6, 7); c.quadraticCurveTo(3, 11, 0, 12);
+    c.stroke();
+
+    c.restore();
+
   } else {
     // ── Knuckles (default) ──
     const red = "#dc1c2c", redHi = "#ff4454", redShade = "#8b0e18", redDark = "#5a0a10";
@@ -3395,6 +4678,36 @@ document.getElementById("pick-amy").addEventListener("click", () => {
   state = State.SELECT;
   show("select");
 });
+document.getElementById("pick-steve").addEventListener("click", () => {
+  selectedChar = "steve";
+  state = State.SELECT;
+  show("select");
+});
+document.getElementById("pick-alex").addEventListener("click", () => {
+  selectedChar = "alex";
+  state = State.SELECT;
+  show("select");
+});
+document.getElementById("pick-pikachu").addEventListener("click", () => {
+  selectedChar = "pikachu";
+  state = State.SELECT;
+  show("select");
+});
+document.getElementById("pick-charmander").addEventListener("click", () => {
+  selectedChar = "charmander";
+  state = State.SELECT;
+  show("select");
+});
+document.getElementById("pick-bulbasaur").addEventListener("click", () => {
+  selectedChar = "bulbasaur";
+  state = State.SELECT;
+  show("select");
+});
+document.getElementById("pick-magikarp").addEventListener("click", () => {
+  selectedChar = "magikarp";
+  state = State.SELECT;
+  show("select");
+});
 document.getElementById("back-btn").addEventListener("click", () => {
   state = State.CHARSELECT;
   show("charselect");
@@ -3459,6 +4772,12 @@ drawCharPreview("preview-tails", "tails");
 drawCharPreview("preview-knuckles", "knuckles");
 drawCharPreview("preview-shadow", "shadow");
 drawCharPreview("preview-amy", "amy");
+drawCharPreview("preview-steve", "steve");
+drawCharPreview("preview-alex", "alex");
+drawCharPreview("preview-pikachu", "pikachu");
+drawCharPreview("preview-charmander", "charmander");
+drawCharPreview("preview-bulbasaur", "bulbasaur");
+drawCharPreview("preview-magikarp", "magikarp");
 </script>
 </body>
 </html>
