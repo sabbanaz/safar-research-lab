@@ -561,10 +561,10 @@ const LEVELS = [
     map: [
       "........................................................................................................................................................................................................",
       "........................................................................................................................................................................................................",
-      "......................................................................*.*.*.*.*.*...........................................................*.*.*.*.*.*.................................................",
+      "....................................................................Q.*.*.*.*.*.*...........................................................*.*.*.*.*.*.......................................Q.........",
       "....................................................................................................f...................................................................................................",
       ".............................................................................................WW.........................................................................................................",
-      "....................Q.........*...*..............................*..Q.*..............*....*..WW..............................Q.........*....*..............*..WW.........................*....Q.........",
+      "....................Q.........*...*..............................*....*..............*....*..WW..............................Q.........*....*..............*..WW.........................*..............",
       "..............................======..WW.........................======..............======..WW...................................======...................======........................======.........",
       "......................................WW.....................................................WW...............................................................WW........................................",
       "..P..*..*...*..e*...*...*...e...*.....WWwwwwwwwwwwwwwwwwww..s.................e..............WWwwwwwwwwwwwwwwwwwwww..s......................e...........e.....WWwwwwwwwwwwwwwwwwwwww..........e......G..",
@@ -586,10 +586,10 @@ const LEVELS = [
     map: [
       "........................................................................................................................................................................................................",
       "........................................................................................................................................................................................................",
-      "............................................................*.*.*.*.*.*..................................*.*.*.*.*.*............................................*.*.*.*.*.*.............................",
+      "............................................................*.*.*.*.*.*.......Q..........................*.*.*.*.*.*............................................*.*.*.*.*.*.............................",
       ".....................................*.*..........................................*.*....................................................*.*............................................................",
       "...................................====.........................................====...................................................====.............................................................",
-      ".........................Q....*...*....................*....*..............*..Q.*..............*....*...................*....*....Q..............*....*...................*....*....Q....*..............",
+      ".........................Q....*...*....................*....*..............*....*..............*....*...................*....*....Q..............*....*...................*....*....Q....*..............",
       "..............................======...................======..............======..............======...................======...................======...................======.........======.........",
       "........................................................................................................................................................................................................",
       "..P..*..*...*...*...*.c.................k....s..............c.........e...................k..............c.........s.........e..............k..............c.........s.........k.........c....e......G..",
@@ -636,10 +636,10 @@ const LEVELS = [
     map: [
       "............................................................",
       "............................................................",
-      "............................................................",
-      "...........................*.Q*..*..........................",
+      "....................................Q.......................",
+      "...........................*..*..*..........................",
       "..........................=======...........................",
-      "............Q..................................Q............",
+      "....................Q...................Q...................",
       "..........=====..............................=====..........",
       "............................................................",
       "..P...*.*......*..*...s.......B......s..*..*........*..*.G..",
@@ -661,10 +661,10 @@ const LEVELS = [
     map: [
       "............................................................",
       "............................................................",
-      "............................................................",
-      "...........................*.Q*..*..........................",
+      "....................................Q.......................",
+      "...........................*..*..*..........................",
       "..........................=======...........................",
-      "............Q..................................Q............",
+      "....................Q...................Q...................",
       "..........=====..............................=====..........",
       "............................................................",
       "..P...*.*......*..*...s.........B....s..*..*........*..*.G..",
@@ -1699,6 +1699,31 @@ function shade(hex, amt) {
 
 function drawSky() {
   const p = level.palette;
+
+  // Voxel levels get a flat sky with blocky clouds — Minecraft has no
+  // gradient sky or soft shapes, and the smooth version was the main
+  // reason the level didn't read as Minecraft at all.
+  if (VOXEL_THEMES[level.id]) {
+    ctx.fillStyle = p.sky2;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    // Distant flat horizon band
+    ctx.fillStyle = shade(p.sky2, 22);
+    ctx.fillRect(0, VIEW_H * 0.55, VIEW_W, VIEW_H * 0.45);
+    // Rectangular clouds drifting in slabs
+    for (let i = 0; i < 14; i++) {
+      const cw = 70 + (i % 4) * 40;
+      const cx = ((i * 190) - (timeAccum * 9 + camera.x * 0.08)) % (VIEW_W + 320) ;
+      const ax = cx < -160 ? cx + VIEW_W + 320 : cx;
+      const cy = 34 + ((i * 61) % 150);
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fillRect(ax, cy, cw, 16);
+      ctx.fillRect(ax + 16, cy - 12, cw - 40, 12);
+      ctx.fillStyle = "rgba(216,230,245,0.92)";
+      ctx.fillRect(ax, cy + 16, cw, 6);
+    }
+    return;
+  }
+
   const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
   g.addColorStop(0, p.sky1);
   g.addColorStop(0.4, p.sky2);
@@ -1895,6 +1920,107 @@ function drawMountain(x, y, w, h, baseColor, capColor) {
   ctx.fill();
 }
 
+// ───────────────────────────────────────────────────────────────
+//  Voxel pixel-texture engine
+//  Minecraft's look is 16x16 hard-edged texel art with flat
+//  per-face lighting — NOT smooth gradients. We bake each block
+//  face to a small offscreen canvas once, then blit it onto the
+//  cube faces with a skew transform. Baking keeps it fast: a few
+//  hundred drawImage calls per frame instead of ~200k fillRects.
+// ───────────────────────────────────────────────────────────────
+const TEX = {};
+const TEXEL = 16;
+
+function texHash(a, b, c) {
+  let h = (a * 73856093) ^ (b * 19349663) ^ (c * 83492791);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+function bakeTexture(key, painter) {
+  if (TEX[key]) return TEX[key];
+  const cv = document.createElement("canvas");
+  cv.width = TEXEL; cv.height = TEXEL;
+  const c = cv.getContext("2d");
+  painter(c);
+  TEX[key] = cv;
+  return cv;
+}
+
+// Flat noisy texel field, e.g. dirt or stone
+function bakeNoise(key, base, lo, hi, seed) {
+  return bakeTexture(key, (c) => {
+    for (let py = 0; py < TEXEL; py++) {
+      for (let px = 0; px < TEXEL; px++) {
+        const n = texHash(px, py, seed);
+        c.fillStyle = shade(base, Math.round(lo + n * (hi - lo)));
+        c.fillRect(px, py, 1, 1);
+      }
+    }
+  });
+}
+
+// Dirt block with a ragged grass fringe hanging over the top —
+// the single most recognisable Minecraft silhouette.
+function bakeGrassSide(key, dirt, grass, seed) {
+  return bakeTexture(key, (c) => {
+    for (let py = 0; py < TEXEL; py++) {
+      for (let px = 0; px < TEXEL; px++) {
+        const n = texHash(px, py, seed);
+        c.fillStyle = shade(dirt, Math.round(-22 + n * 40));
+        c.fillRect(px, py, 1, 1);
+      }
+    }
+    for (let px = 0; px < TEXEL; px++) {
+      const depth = 2 + Math.floor(texHash(px, 99, seed) * 3);  // ragged edge
+      for (let py = 0; py < depth; py++) {
+        const n = texHash(px, py, seed + 7);
+        c.fillStyle = shade(grass, Math.round(-18 + n * 36));
+        c.fillRect(px, py, 1, 1);
+      }
+    }
+  });
+}
+
+// Blit a baked texture onto one cube face. Faces are parallelograms,
+// so we shear the context rather than drawing axis-aligned.
+// face: "front" | "top" | "right"
+function blitFace(tex, face, x, y, D, dim) {
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  if (face === "front") {
+    ctx.drawImage(tex, x, y, TILE, TILE);
+    if (dim) { ctx.fillStyle = `rgba(0,0,0,${dim})`; ctx.fillRect(x, y, TILE, TILE); }
+  } else if (face === "top") {
+    ctx.transform(1, 0, -1, 1, x + D, y - D);
+    ctx.drawImage(tex, 0, 0, TILE, D);
+    if (dim) { ctx.fillStyle = `rgba(0,0,0,${dim})`; ctx.fillRect(0, 0, TILE, D); }
+  } else {
+    ctx.transform(1, -1, 0, 1, x + TILE, y);
+    ctx.drawImage(tex, 0, 0, D, TILE);
+    if (dim) { ctx.fillStyle = `rgba(0,0,0,${dim})`; ctx.fillRect(0, 0, D, TILE); }
+  }
+  ctx.restore();
+}
+
+// Per-level texel palettes. Any level listed here renders with the
+// pixel-texture path instead of the smooth-gradient path.
+const VOXEL_THEMES = {
+  5: { grass: "#5fa83c", dirt: "#866043", seed: 1 },   // Minecraft World
+};
+
+function drawVoxelTile(x, y, tx, ty, theme, openAbove, openRight, D) {
+  const v = (tx * 31 + ty * 17) % 3;                     // 3 texture variants
+  const dirt  = bakeNoise("d" + theme.seed + v, theme.dirt,  -26, 26, theme.seed + v);
+  const gtop  = bakeNoise("g" + theme.seed + v, theme.grass, -20, 24, theme.seed + v + 3);
+  const gside = bakeGrassSide("s" + theme.seed + v, theme.dirt, theme.grass, theme.seed + v);
+
+  // Flat per-face lighting, exactly how a voxel engine shades cubes
+  blitFace(openAbove ? gside : dirt, "front", x, y, D, 0.12);
+  if (openRight) blitFace(openAbove ? gside : dirt, "right", x, y, D, 0.34);
+  if (openAbove) blitFace(gtop, "top", x, y, D, 0);
+}
+
 function drawTiles() {
   const p = level.palette;
   const D = DEPTH_3D;
@@ -1928,6 +2054,20 @@ function drawTiles() {
       const openBelow = !solid(tx, ty + 1);
       const openLeft  = !solid(tx - 1, ty);
       const seed = tx * 73 + ty * 131;
+
+      // Voxel-textured levels take the pixel-art path
+      const vtheme = VOXEL_THEMES[level.id];
+      if (vtheme) {
+        if (openBelow) {
+          ctx.fillStyle = "rgba(0,0,0,0.16)";
+          ctx.beginPath();
+          ctx.moveTo(x, y + TILE); ctx.lineTo(x + TILE, y + TILE);
+          ctx.lineTo(x + TILE - D, y + TILE + D); ctx.lineTo(x - D, y + TILE + D);
+          ctx.closePath(); ctx.fill();
+        }
+        drawVoxelTile(x, y, tx, ty, vtheme, openAbove, openRight, D);
+        continue;
+      }
 
       // ── CAST SHADOW into the empty space below-left (grounds the cube) ──
       if (openBelow) {
