@@ -601,11 +601,11 @@ const LEVELS = [
   ,{
     id: 6,
     name: "POKEMON ROUTE",
-    blurb: "Route 1 stroll. Rattatas and Zubats about!",
+    blurb: "Lakeside forest route. Wild Pokemon roam.",
     palette: {
-      sky1: "#a0e8ff", sky2: "#4fc3f7", sky3: "#3d97c9",
-      far:  "#6bb87a", mid:  "#4a9d5a", near: "#2e7a3a",
-      groundTop: "#7ed86a", groundBody: "#4a9d3a", groundShade: "#2e6a20",
+      sky1: "#dff2ff", sky2: "#7ec8f0", sky3: "#3f9fd8",
+      far:  "#8f9fb8", mid:  "#3f7a4a", near: "#255c32",
+      groundTop: "#82d95e", groundBody: "#6b4a2a", groundShade: "#3d2915",
       accent: "#ffd45a"
     },
     map: [
@@ -1813,6 +1813,109 @@ function drawAlienVoxelSky(p) {
   }
 }
 
+// ───────────────────────────────────────────────────────────────
+//  Lush forest backdrop (Pokemon Route)
+//  Deliberately soft and organic — rounded canopies, hazy layered
+//  mountains, fluffy cumulus. The blocky voxel language used for
+//  Minecraft World would fight this art style, so this level opts
+//  out of it entirely.
+// ───────────────────────────────────────────────────────────────
+function pokeRand(i, s) {
+  let h = Math.imul((i * 374761393) ^ (s * 668265263), 1274126177);
+  return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
+}
+
+// Soft cumulus built from overlapping discs with a shaded underside
+function drawCumulus(cx, cy, s, alpha) {
+  const puffs = [[-30,6,17],[-12,-6,23],[8,-10,26],[28,-2,21],[44,8,15],[12,10,20]];
+  ctx.fillStyle = `rgba(196,214,232,${alpha * 0.85})`;
+  for (const [dx, dy, r] of puffs) {
+    ctx.beginPath(); ctx.arc(cx + dx * s, cy + dy * s + 5 * s, r * s, 0, 6.283); ctx.fill();
+  }
+  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+  for (const [dx, dy, r] of puffs) {
+    ctx.beginPath(); ctx.arc(cx + dx * s, cy + dy * s, r * s, 0, 6.283); ctx.fill();
+  }
+}
+
+// Rounded tree: trunk plus a cluster of leaf discs, lit from upper-left
+function drawLeafTree(bx, baseY, h, s, trunkCol, leafCol, leafHi, seed) {
+  const tw = Math.max(4, 9 * s);
+  ctx.fillStyle = trunkCol;
+  ctx.fillRect(bx - tw / 2, baseY - h, tw, h);
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.fillRect(bx + tw / 2 - tw * 0.34, baseY - h, tw * 0.34, h);
+  const cy = baseY - h - 6 * s, R = 30 * s;
+  ctx.fillStyle = leafCol;
+  const blobs = [[0,0,1.0],[-0.72,0.22,0.74],[0.72,0.2,0.76],[-0.34,-0.5,0.7],[0.36,-0.52,0.68],[0,-0.85,0.55]];
+  for (const [dx, dy, r] of blobs) {
+    ctx.beginPath(); ctx.arc(bx + dx * R, cy + dy * R, r * R, 0, 6.283); ctx.fill();
+  }
+  ctx.fillStyle = leafHi;
+  for (const [dx, dy, r] of [[-0.3,-0.55,0.42],[0.16,-0.72,0.32],[-0.62,-0.05,0.3]]) {
+    ctx.beginPath(); ctx.arc(bx + dx * R, cy + dy * R, r * R, 0, 6.283); ctx.fill();
+  }
+}
+
+function drawForestSky(p) {
+  const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+  g.addColorStop(0, p.sky3);
+  g.addColorStop(0.5, p.sky2);
+  g.addColorStop(1, p.sky1);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+  // Cumulus banks
+  for (let i = 0; i < 9; i++) {
+    const sp = 6 + (i % 3) * 4;
+    const cx = ((i * 240) - (timeAccum * sp + camera.x * 0.05)) % (VIEW_W + 400);
+    const ax = cx < -200 ? cx + VIEW_W + 400 : cx;
+    drawCumulus(ax, 40 + pokeRand(i, 2) * 110, 0.75 + pokeRand(i, 3) * 0.75, 0.95);
+  }
+
+  // Layered mountain range, hazier with distance
+  for (let layer = 0; layer < 3; layer++) {
+    const depth = 0.05 + layer * 0.035;
+    const baseY = VIEW_H * (0.60 + layer * 0.045);
+    const peakH = 190 - layer * 34;
+    ctx.fillStyle = shade(p.far, 34 - layer * 26);
+    ctx.beginPath();
+    ctx.moveTo(-100, baseY + 60);
+    for (let i = -1; i < 16; i++) {
+      const x = i * 190 - (camera.x * depth) % 190;
+      const h = peakH * (0.55 + pokeRand(i + layer * 40, 7) * 0.55);
+      ctx.lineTo(x, baseY);
+      ctx.lineTo(x + 95, baseY - h);
+      ctx.lineTo(x + 190, baseY);
+    }
+    ctx.lineTo(VIEW_W + 100, baseY + 60);
+    ctx.closePath(); ctx.fill();
+    // Pale peaks catching light
+    if (layer === 0) {
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      for (let i = -1; i < 16; i++) {
+        const x = i * 190 - (camera.x * depth) % 190;
+        const h = peakH * (0.55 + pokeRand(i, 7) * 0.55);
+        ctx.beginPath();
+        ctx.moveTo(x + 95, baseY - h);
+        ctx.lineTo(x + 72, baseY - h * 0.72);
+        ctx.lineTo(x + 95, baseY - h * 0.80);
+        ctx.lineTo(x + 118, baseY - h * 0.72);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+
+  // Hazy distant treeline
+  ctx.fillStyle = shade(p.mid, 42);
+  for (let i = -1; i < 26; i++) {
+    const x = i * 84 - (camera.x * 0.14) % 84;
+    const r = 30 + pokeRand(i, 11) * 20;
+    ctx.beginPath(); ctx.arc(x, VIEW_H * 0.735, r, Math.PI, 0); ctx.fill();
+  }
+  ctx.fillRect(0, VIEW_H * 0.735, VIEW_W, VIEW_H * 0.30);
+}
+
 function drawSky() {
   const p = level.palette;
 
@@ -1820,6 +1923,7 @@ function drawSky() {
   // gradient sky or soft shapes, and the smooth version was the main
   // reason the level didn't read as Minecraft at all.
   if (level.id === 5) { drawAlienVoxelSky(p); return; }
+  if (level.id === 6) { drawForestSky(p); return; }
 
   const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
   g.addColorStop(0, p.sky1);
@@ -1948,6 +2052,42 @@ function drawCloud(x, y, scale, color) {
 
 function drawParallax() {
   const p = level.palette;
+
+  if (level.id === 6) {
+    // Deep forest band
+    for (let i = -1; i < 20; i++) {
+      const x = i * 118 - (camera.x * 0.26) % 118;
+      drawLeafTree(x, VIEW_H * 0.90, 60 + pokeRand(i, 21) * 34, 0.78,
+                   "#4a3520", shade(p.mid, -10), shade(p.mid, 16), i);
+    }
+    // Nearer, fuller trees
+    for (let i = -1; i < 14; i++) {
+      const x = i * 176 - (camera.x * 0.46) % 176 + 60;
+      drawLeafTree(x, VIEW_H * 0.99, 96 + pokeRand(i, 31) * 50, 1.12,
+                   "#3d2b18", p.near, shade(p.near, 26), i + 60);
+    }
+    // Undergrowth
+    ctx.fillStyle = shade(p.near, -22);
+    for (let i = -1; i < 30; i++) {
+      const x = i * 76 - (camera.x * 0.72) % 76;
+      const h = 30 + (Math.sin(i * 1.7) * 0.5 + 0.5) * 26;
+      ctx.beginPath(); ctx.arc(x, VIEW_H, h, Math.PI, 0); ctx.fill();
+    }
+    // Canopy hanging into frame from above, as in the reference
+    ctx.fillStyle = shade(p.near, -34);
+    for (let i = -1; i < 24; i++) {
+      const x = i * 96 - (camera.x * 0.85) % 96;
+      const r = 34 + pokeRand(i, 41) * 26;
+      ctx.beginPath(); ctx.arc(x, -8, r, 0, Math.PI); ctx.fill();
+    }
+    ctx.fillStyle = shade(p.near, -18);
+    for (let i = -1; i < 24; i++) {
+      const x = i * 96 - (camera.x * 0.85) % 96 + 44;
+      const r = 22 + pokeRand(i, 42) * 20;
+      ctx.beginPath(); ctx.arc(x, -14, r, 0, Math.PI); ctx.fill();
+    }
+    return;
+  }
 
   if (level.id === 5) {
     // Mid mesas
@@ -2150,7 +2290,6 @@ const VOXEL_THEMES = {
   3: { grass: "#f2f6ff", dirt: "#c2d2ee", seed: 33 },  // Cloud Skyway
   4: { grass: "#54d6d6", dirt: "#1f8f96", seed: 44 },  // Splash Lagoon
   5: { grass: "#e2662a", dirt: "#6b6b78", seed: 1  },  // Minecraft World (alien)
-  6: { grass: "#7ed86a", dirt: "#7a5a34", seed: 66 },  // Pokemon Route
   7: { grass: "#a3384a", dirt: "#5a1622", seed: 77 },  // Spider Queen's Lair
   8: { grass: "#d8d3b4", dirt: "#3a3550", seed: 88 },  // The End
 };
