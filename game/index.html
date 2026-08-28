@@ -110,17 +110,17 @@
   .btn.secondary:active { box-shadow: 0 4px 0 #3d2db0, 0 10px 18px rgba(0,0,0,0.35); }
   .level-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 22px;
-    width: min(820px, 90vw);
-    margin: 14px 0 26px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    width: min(880px, 94vw);
+    margin: 10px 0 18px;
   }
   .level-card {
     cursor: pointer;
     background: rgba(0,0,0,0.35);
     border: 2px solid rgba(255,255,255,0.12);
-    border-radius: 18px;
-    padding: 18px;
+    border-radius: 14px;
+    padding: 12px;
     text-align: left;
     transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
     color: #fff;
@@ -134,13 +134,13 @@
     font-size: 14px; letter-spacing: 3px; color: #ffd45a;
   }
   .level-card .name {
-    font-size: 24px; font-weight: 900; margin: 4px 0 6px;
+    font-size: 19px; font-weight: 900; margin: 3px 0 4px;
   }
   .level-card .blurb {
     font-size: 13px; color: #c9b9ff; line-height: 1.4;
   }
   .level-card .swatch {
-    height: 70px; border-radius: 10px; margin-bottom: 12px;
+    height: 52px; border-radius: 10px; margin-bottom: 12px;
     background-size: cover; background-position: center;
     border: 1px solid rgba(255,255,255,0.1);
   }
@@ -186,20 +186,42 @@
   .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
   .char-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 22px;
-    width: min(680px, 90vw);
-    margin: 14px 0 26px;
+    grid-template-columns: repeat(auto-fit, minmax(124px, 1fr));
+    gap: 12px;
+    width: min(900px, 94vw);
+    margin: 10px 0 18px;
   }
   .char-card {
     cursor: pointer;
     background: rgba(0,0,0,0.35);
     border: 2px solid rgba(255,255,255,0.12);
-    border-radius: 18px;
-    padding: 18px;
+    border-radius: 14px;
+    padding: 8px 6px 10px;
     text-align: center;
     transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
     color: #fff;
+  }
+  /* Preview canvases: uniform box, centred, consistent baseline */
+  .char-card canvas {
+    display: block;
+    margin: 0 auto 2px;
+    width: 88px;
+    height: 96px;
+  }
+  .char-card .char-name { font-size: 15px; font-weight: 900; letter-spacing: 1px; }
+  .char-card .char-tagline { font-size: 11px; color: #c9b9ff; }
+
+  /* Tall menus scroll instead of clipping off-screen */
+  #char-overlay, #select-overlay {
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding-top: 3vh;
+    padding-bottom: 3vh;
+  }
+  #char-overlay::-webkit-scrollbar, #select-overlay::-webkit-scrollbar { width: 10px; }
+  #char-overlay::-webkit-scrollbar-thumb,
+  #select-overlay::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.22); border-radius: 8px;
   }
   .char-card:hover {
     transform: translateY(-3px);
@@ -263,57 +285,57 @@
       <h1 class="logo" style="font-size: clamp(28px, 4vw, 56px);">CHOOSE YOUR HERO</h1>
       <div class="char-grid">
         <div class="char-card sonic" id="pick-sonic">
-          <canvas id="preview-sonic" width="100" height="120"></canvas>
+          <canvas id="preview-sonic" width="176" height="192"></canvas>
           <div class="char-name">SONIC</div>
           <div class="char-tagline">Speed demon</div>
         </div>
         <div class="char-card tails" id="pick-tails">
-          <canvas id="preview-tails" width="100" height="120"></canvas>
+          <canvas id="preview-tails" width="176" height="192"></canvas>
           <div class="char-name">TAILS</div>
           <div class="char-tagline">Sky pilot</div>
         </div>
         <div class="char-card knuckles" id="pick-knuckles">
-          <canvas id="preview-knuckles" width="100" height="120"></canvas>
+          <canvas id="preview-knuckles" width="176" height="192"></canvas>
           <div class="char-name">KNUCKLES</div>
           <div class="char-tagline">Power puncher</div>
         </div>
         <div class="char-card shadow" id="pick-shadow">
-          <canvas id="preview-shadow" width="100" height="120"></canvas>
+          <canvas id="preview-shadow" width="176" height="192"></canvas>
           <div class="char-name">SHADOW</div>
           <div class="char-tagline">Dark rival</div>
         </div>
         <div class="char-card amy" id="pick-amy">
-          <canvas id="preview-amy" width="100" height="120"></canvas>
+          <canvas id="preview-amy" width="176" height="192"></canvas>
           <div class="char-name">AMY</div>
           <div class="char-tagline">Hammer power</div>
         </div>
         <div class="char-card steve" id="pick-steve">
-          <canvas id="preview-steve" width="100" height="120"></canvas>
+          <canvas id="preview-steve" width="176" height="192"></canvas>
           <div class="char-name">STEVE</div>
           <div class="char-tagline">Blocky builder</div>
         </div>
         <div class="char-card alex" id="pick-alex">
-          <canvas id="preview-alex" width="100" height="120"></canvas>
+          <canvas id="preview-alex" width="176" height="192"></canvas>
           <div class="char-name">ALEX</div>
           <div class="char-tagline">Adventurous</div>
         </div>
         <div class="char-card pikachu" id="pick-pikachu">
-          <canvas id="preview-pikachu" width="100" height="120"></canvas>
+          <canvas id="preview-pikachu" width="176" height="192"></canvas>
           <div class="char-name">PIKACHU</div>
           <div class="char-tagline">Electric mouse</div>
         </div>
         <div class="char-card charmander" id="pick-charmander">
-          <canvas id="preview-charmander" width="100" height="120"></canvas>
+          <canvas id="preview-charmander" width="176" height="192"></canvas>
           <div class="char-name">CHARMANDER</div>
           <div class="char-tagline">Fire lizard</div>
         </div>
         <div class="char-card bulbasaur" id="pick-bulbasaur">
-          <canvas id="preview-bulbasaur" width="100" height="120"></canvas>
+          <canvas id="preview-bulbasaur" width="176" height="192"></canvas>
           <div class="char-name">BULBASAUR</div>
           <div class="char-tagline">Plant power</div>
         </div>
         <div class="char-card magikarp" id="pick-magikarp">
-          <canvas id="preview-magikarp" width="100" height="120"></canvas>
+          <canvas id="preview-magikarp" width="176" height="192"></canvas>
           <div class="char-name">MAGIKARP</div>
           <div class="char-tagline">Just splash</div>
         </div>
@@ -5318,10 +5340,17 @@ function drawCharPreview(canvasId, charName) {
   if (!cvs || !cvs.getContext) return;
   const pc = cvs.getContext("2d");
   if (!pc) return;
-  pc.clearRect(0, 0, cvs.width, cvs.height);
+  // Logical design box; the backing store is 2x this for HiDPI crispness.
+  const LW = 88, LH = 96;
+  const s = cvs.width / LW;
+  pc.setTransform(s, 0, 0, s, 0, 0);
+  pc.clearRect(0, 0, LW, LH);
+  pc.imageSmoothingEnabled = true;
+  if ("imageSmoothingQuality" in pc) pc.imageSmoothingQuality = "high";
   pc.save();
-  // Center the character in the preview canvas (standing pose)
-  pc.translate(cvs.width / 2, cvs.height - 10);
+  // Every character stands on the same baseline, horizontally centred,
+  // so the roster reads as one consistent line-up.
+  pc.translate(LW / 2, LH - 11);
   drawCharBody(pc, charName, 0, 0, 0, 0, 0, 0, "idle", 0);
   pc.restore();
 }
