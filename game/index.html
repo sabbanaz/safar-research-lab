@@ -5285,8 +5285,29 @@ function fit() {
   const maxH = window.innerHeight - pad;
   let w = maxW, h = maxW / aspect;
   if (h > maxH) { h = maxH; w = maxH * aspect; }
+
+  // CSS size (layout size on the page)
   canvas.style.width = w + "px";
   canvas.style.height = h + "px";
+
+  // Backing-store size at true device resolution. Previously the canvas
+  // was a fixed 960x540 buffer stretched by CSS, so on a HiDPI display
+  // every pixel was blown up ~3x and everything looked soft. Now we
+  // allocate the real pixel count and scale the context, so all game
+  // code keeps drawing in 960x540 logical units while the output is
+  // rendered crisply at native resolution.
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const pxW = Math.round(w * dpr);
+  const pxH = Math.round(h * dpr);
+  if (canvas.width !== pxW || canvas.height !== pxH) {
+    canvas.width = pxW;
+    canvas.height = pxH;
+  }
+  const scale = pxW / VIEW_W;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
+  ctx.textBaseline = "alphabetic";
 }
 window.addEventListener("resize", fit);
 fit();
