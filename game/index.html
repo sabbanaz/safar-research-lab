@@ -576,11 +576,11 @@ const LEVELS = [
   ,{
     id: 5,
     name: "MINECRAFT WORLD",
-    blurb: "Blocky voxel adventure. Watch out for creepers!",
+    blurb: "Alien voxel world. Coral spires and creepers.",
     palette: {
-      sky1: "#7ec0ee", sky2: "#4a90d9", sky3: "#3a72b0",
-      far:  "#6b9dc7", mid:  "#4a7ba6", near: "#2e5a85",
-      groundTop: "#4a9d3a", groundBody: "#8b5a2b", groundShade: "#5a3818",
+      sky1: "#c8e85a", sky2: "#8fbf16", sky3: "#5d8a0c",
+      far:  "#4a5560", mid:  "#3a434e", near: "#2a3038",
+      groundTop: "#e2662a", groundBody: "#6b6b78", groundShade: "#3d3d47",
       accent: "#ffd45a"
     },
     map: [
@@ -1697,32 +1697,129 @@ function shade(hex, amt) {
   return `rgb(${r|0},${g|0},${b|0})`;
 }
 
+// ───────────────────────────────────────────────────────────────
+//  Alien voxel backdrop (Minecraft World)
+//  Acid-green sky, a bright bloomed sun, star field, blocky crimson
+//  coral spires and grey stone mesas in parallax, plus drifting
+//  creatures. Everything is drawn from axis-aligned rectangles so it
+//  reads as the same block language as the terrain.
+// ───────────────────────────────────────────────────────────────
+function alienRand(i, s) {
+  let h = Math.imul((i * 2654435761) ^ (s * 40503), 2246822519);
+  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+}
+
+// A blocky coral spire: tapered stem with an irregular crown of cubes
+function drawCoralSpire(bx, groundY, h, scale, stemCol, coralCol, seed) {
+  const bw = Math.max(5, Math.round(7 * scale));
+  // stem
+  ctx.fillStyle = stemCol;
+  ctx.fillRect(bx - bw / 2, groundY - h, bw, h);
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.fillRect(bx + bw / 2 - Math.max(2, bw * 0.3), groundY - h, Math.max(2, bw * 0.3), h);
+  // crown of stacked cubes
+  const cube = Math.max(6, Math.round(13 * scale));
+  const layers = 4 + Math.floor(alienRand(seed, 3) * 3);
+  for (let L = 0; L < layers; L++) {
+    const ly = groundY - h - cube * 0.55 + L * cube * 0.72;
+    const spreadN = 1 + Math.floor(alienRand(seed + L, 5) * 3);
+    for (let k = 0; k < spreadN; k++) {
+      const off = (k - (spreadN - 1) / 2) * cube * 0.92
+                + (alienRand(seed + L * 7 + k, 9) - 0.5) * cube * 0.5;
+      const shrink = 1 - L * 0.11;
+      const cs = cube * shrink;
+      ctx.fillStyle = coralCol;
+      ctx.fillRect(bx + off - cs / 2, ly - cs, cs, cs);
+      ctx.fillStyle = "rgba(255,255,255,0.13)";
+      ctx.fillRect(bx + off - cs / 2, ly - cs, cs, Math.max(1, cs * 0.22));
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.fillRect(bx + off + cs / 2 - cs * 0.22, ly - cs, cs * 0.22, cs);
+    }
+  }
+}
+
+// Stepped blocky mesa silhouette
+function drawVoxelMesa(x, baseY, w, h, col, step) {
+  const cols = Math.max(3, Math.round(w / step));
+  for (let i = 0; i < cols; i++) {
+    const t = i / (cols - 1);
+    const hh = h * (0.42 + 0.58 * Math.sin(Math.PI * t) ** 0.7);
+    const bx = x + i * step;
+    ctx.fillStyle = col;
+    ctx.fillRect(bx, baseY - hh, step + 1, hh);
+    ctx.fillStyle = "rgba(255,255,255,0.07)";
+    ctx.fillRect(bx, baseY - hh, step + 1, Math.min(6, hh));
+  }
+}
+
+function drawAlienVoxelSky(p) {
+  // Acid green sky
+  const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+  g.addColorStop(0, p.sky3);
+  g.addColorStop(0.42, p.sky2);
+  g.addColorStop(1, p.sky1);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+  // Star field
+  for (let i = 0; i < 90; i++) {
+    const sx = (alienRand(i, 1) * (VIEW_W + 400) - camera.x * 0.03) % (VIEW_W + 400);
+    const ax = sx < 0 ? sx + VIEW_W + 400 : sx;
+    const sy = alienRand(i, 2) * VIEW_H * 0.72;
+    const tw = 0.45 + 0.55 * Math.abs(Math.sin(timeAccum * 1.4 + i));
+    const s = alienRand(i, 8) > 0.85 ? 3 : 2;
+    ctx.fillStyle = `rgba(255,255,255,${0.30 + tw * 0.5})`;
+    ctx.fillRect(Math.round(ax), Math.round(sy), s, s);
+  }
+
+  // Bright bloomed sun, upper right
+  const sunX = VIEW_W * 0.74 - camera.x * 0.02;
+  const sunY = VIEW_H * 0.13;
+  const bloom = ctx.createRadialGradient(sunX, sunY, 8, sunX, sunY, 250);
+  bloom.addColorStop(0, "rgba(255,255,230,0.95)");
+  bloom.addColorStop(0.22, "rgba(250,255,150,0.55)");
+  bloom.addColorStop(0.55, "rgba(210,240,60,0.22)");
+  bloom.addColorStop(1, "rgba(180,220,40,0)");
+  ctx.fillStyle = bloom;
+  ctx.beginPath(); ctx.arc(sunX, sunY, 250, 0, 6.283); ctx.fill();
+  ctx.fillStyle = "#fdffe0";
+  ctx.beginPath(); ctx.arc(sunX, sunY, 46, 0, 6.283); ctx.fill();
+
+  // Drifting alien creatures
+  for (let i = 0; i < 5; i++) {
+    const spd = 12 + i * 5;
+    const cx = ((i * 260) + timeAccum * spd - camera.x * 0.06) % (VIEW_W + 300);
+    const ax = cx < -150 ? cx + VIEW_W + 300 : cx;
+    const cy = 40 + alienRand(i, 21) * 120 + Math.sin(timeAccum * 0.7 + i) * 12;
+    const s = 0.7 + alienRand(i, 22) * 0.7;
+    ctx.fillStyle = "rgba(38,42,48,0.9)";
+    ctx.fillRect(ax, cy, 26 * s, 9 * s);                       // body
+    ctx.fillRect(ax + 8 * s, cy - 5 * s, 10 * s, 5 * s);       // hump
+    const flap = Math.sin(timeAccum * 5 + i) * 5 * s;
+    ctx.fillRect(ax - 12 * s, cy + flap, 13 * s, 3 * s);       // wings
+    ctx.fillRect(ax + 26 * s, cy - flap, 13 * s, 3 * s);
+  }
+
+  // Far mesa band
+  for (let i = -1; i < 12; i++) {
+    const x = i * 260 - (camera.x * 0.10) % 260;
+    drawVoxelMesa(x, VIEW_H * 0.80, 260, 120 + (i % 3) * 34, p.far, 22);
+  }
+  // Distant coral spires
+  for (let i = -1; i < 16; i++) {
+    const x = i * 190 - (camera.x * 0.16) % 190 + 40;
+    const h = 110 + alienRand(i, 31) * 90;
+    drawCoralSpire(x, VIEW_H * 0.80, h, 0.72, "#6b5230", "#5e1622", i);
+  }
+}
+
 function drawSky() {
   const p = level.palette;
 
   // Voxel levels get a flat sky with blocky clouds — Minecraft has no
   // gradient sky or soft shapes, and the smooth version was the main
   // reason the level didn't read as Minecraft at all.
-  if (level.id === 5) {
-    ctx.fillStyle = p.sky2;
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-    // Distant flat horizon band
-    ctx.fillStyle = shade(p.sky2, 22);
-    ctx.fillRect(0, VIEW_H * 0.55, VIEW_W, VIEW_H * 0.45);
-    // Rectangular clouds drifting in slabs
-    for (let i = 0; i < 14; i++) {
-      const cw = 70 + (i % 4) * 40;
-      const cx = ((i * 190) - (timeAccum * 9 + camera.x * 0.08)) % (VIEW_W + 320) ;
-      const ax = cx < -160 ? cx + VIEW_W + 320 : cx;
-      const cy = 34 + ((i * 61) % 150);
-      ctx.fillStyle = "rgba(255,255,255,0.92)";
-      ctx.fillRect(ax, cy, cw, 16);
-      ctx.fillRect(ax + 16, cy - 12, cw - 40, 12);
-      ctx.fillStyle = "rgba(216,230,245,0.92)";
-      ctx.fillRect(ax, cy + 16, cw, 6);
-    }
-    return;
-  }
+  if (level.id === 5) { drawAlienVoxelSky(p); return; }
 
   const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
   g.addColorStop(0, p.sky1);
@@ -1851,6 +1948,41 @@ function drawCloud(x, y, scale, color) {
 
 function drawParallax() {
   const p = level.palette;
+
+  if (level.id === 5) {
+    // Mid mesas
+    for (let i = -1; i < 14; i++) {
+      const x = i * 210 - (camera.x * 0.30) % 210;
+      drawVoxelMesa(x, VIEW_H * 0.92, 210, 150 + (i % 4) * 30, p.mid, 20);
+    }
+    // Foreground coral spires, larger and warmer
+    for (let i = -1; i < 14; i++) {
+      const x = i * 230 - (camera.x * 0.48) % 230 + 70;
+      const h = 150 + alienRand(i, 41) * 120;
+      drawCoralSpire(x, VIEW_H * 0.94, h, 1.05, "#7d5f36", "#7d1c2c", i + 50);
+    }
+    // Near rock band with orange coral crust along the top
+    for (let i = -1; i < 20; i++) {
+      const x = i * 150 - (camera.x * 0.72) % 150;
+      const h = 62 + (Math.sin(i * 2.1) * 0.5 + 0.5) * 42;
+      ctx.fillStyle = p.near;
+      ctx.fillRect(x, VIEW_H - h, 152, h);
+      ctx.fillStyle = "#c2531f";
+      ctx.fillRect(x, VIEW_H - h, 152, 9);
+      for (let k = 0; k < 7; k++) {
+        if (alienRand(i * 11 + k, 55) > 0.55) {
+          const tx = x + k * 22 + 4;
+          const th = 7 + alienRand(i * 13 + k, 56) * 12;
+          ctx.fillStyle = "#e2662a";
+          ctx.fillRect(tx, VIEW_H - h - th, 7, th);
+          ctx.fillStyle = "#ff8a3c";
+          ctx.fillRect(tx, VIEW_H - h - th, 7, 4);
+        }
+      }
+    }
+    return;
+  }
+
   // far mountains with snow-cap-like highlight on top
   for (let i = -2; i < 18; i++) {
     const x = i * 280 - (camera.x * 0.12) % 280;
@@ -2017,7 +2149,7 @@ const VOXEL_THEMES = {
   2: { grass: "#a98bfa", dirt: "#5b3aa6", seed: 22 },  // Crystal Cavern
   3: { grass: "#f2f6ff", dirt: "#c2d2ee", seed: 33 },  // Cloud Skyway
   4: { grass: "#54d6d6", dirt: "#1f8f96", seed: 44 },  // Splash Lagoon
-  5: { grass: "#5fa83c", dirt: "#866043", seed: 1  },  // Minecraft World
+  5: { grass: "#e2662a", dirt: "#6b6b78", seed: 1  },  // Minecraft World (alien)
   6: { grass: "#7ed86a", dirt: "#7a5a34", seed: 66 },  // Pokemon Route
   7: { grass: "#a3384a", dirt: "#5a1622", seed: 77 },  // Spider Queen's Lair
   8: { grass: "#d8d3b4", dirt: "#3a3550", seed: 88 },  // The End
