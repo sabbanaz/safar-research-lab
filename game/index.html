@@ -469,7 +469,7 @@ const LEVELS = [
       "..............................Q.............==.=.................Q....f...........................................................f.........Q............................................Q..............",
       "......................................==*=....*...==*=..................................................................................................................................................",
       "........................................................................................*.*.............................................................................................................",
-      "..P...*.*.*..e.*..*..*...*..*......e......*.....*......e..s...*.....*......e......*..*..s...*..e..............*....e.........*......*..e.........s..*......*....e.........*....*....e.........*......G..",
+      "..P...*.*.*..e.*..*..*...*..*......e......*.....*......e..s...*.....*......e......*..*..s...*..e..............*....e.........*......*..e.........s..*......*....e.........*....*....e.........B......G..",
       "##########################################################....##########################################################...################################....#########################################",
       "##########################################################....##########################################################...################################....#########################################",
       "##########################################################....##########################################################...################################....#########################################",
@@ -569,7 +569,7 @@ const LEVELS = [
       ".........................Q....*...*....................*....*..............*..Q.*..............*....*...................*....*....Q..............*....*...................*....*....Q....*..............",
       "..............................======...................======..............======..............======...................======...................======...................======.........======.........",
       "........................................................................................................................................................................................................",
-      "..P..*..*...*...*...*.c.................k....s..............c.........e...................k..............c.........s.........e..............k..............c.........s.........k.........c....e......G..",
+      "..P..*..*...*...*...*.c.................k....s..............c.........e...................k..............c.........s.........e..............k..............c.........s.........k.........c..B.e......G..",
       "##################################################...###############################################...###############################################...###############################################",
       "##################################################...###############################################...###############################################...###############################################",
       "##################################################...###############################################...###############################################...###############################################",
@@ -677,11 +677,23 @@ function loadLevel(idx) {
         entities.push({ kind: "spring", x: px + 6, y: py + TILE - 20, w: TILE - 12, h: 20, charge: 0 });
         tiles[y][x] = ".";
       } else if (ch === "G") {
-        goal = { x: px + TILE/2, y: py, reached: false };
+        goal = { x: px + TILE/2, y: py, reached: false, locked: false };
+        tiles[y][x] = ".";
+      } else if (ch === "B") {
+        const bossType = level.id === 5 ? "ender_dragon" : "spider_queen";
+        entities.push({
+          kind: "boss", bossType,
+          x: px - 20, y: py - 24, w: 88, h: 84,
+          vx: 0, vy: 0, hp: 5, maxHp: 5, alive: true,
+          phase: "idle", phaseT: 0, invuln: 0, t: 0,
+          facing: -1, baseY: py - 24,
+        });
         tiles[y][x] = ".";
       }
     }
   }
+  // Lock goal if a boss is present
+  if (goal && entities.some(e => e.kind === "boss")) goal.locked = true;
   cameraSnap = true;
   ui.hudLevel.textContent = "WORLD " + level.id + " · " + level.name;
   ui.hudCoins.textContent = "★ " + coins;
@@ -852,6 +864,39 @@ function updatePlayer(dt) {
     player.jumpBuf = 0;
     player.jumpHeld = true;
     spawnParticles(player.x + player.w/2, player.y + player.h, 8, { color: "#fff", life: 0.35, speed: 140, vy: -40, r: 2 });
+  } else if (player.jumpBuf > 0 && !player.onGround && (player.doubleJumps || 0) > 0) {
+    // Feather power-up: mid-air jump
+    player.vy = JUMP_V * 0.85;
+    player.doubleJumps -= 1;
+    player.jumpBuf = 0;
+    player.jumpHeld = true;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      particles.push({
+        x: player.x + player.w/2, y: player.y + player.h - 4,
+        vx: Math.cos(a) * 140, vy: Math.sin(a) * 60 + 40,
+        life: 0.5, maxLife: 0.5, color: "#ffe088",
+        r: 2.5, gravity: 200,
+      });
+    }
+  }
+  // Magnet: pull coins toward player
+  if ((player.magnetTime || 0) > 0) {
+    player.magnetTime -= dt;
+    if (player.magnetTime <= 0) player.magnetTime = 0;
+    else {
+      const px = player.x + player.w/2, py = player.y + player.h/2;
+      for (const e of entities) {
+        if (e.kind !== "coin" || !e.alive) continue;
+        const dx = px - e.x, dy = py - e.y;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 220 && d > 1) {
+          const pull = 500;
+          e.x += dx / d * pull * dt;
+          e.y += dy / d * pull * dt;
+        }
+      }
+    }
   }
   if (!inWater && !jumpDown && player.jumpHeld && player.vy < 0) {
     player.vy *= JUMP_CUT;
@@ -998,8 +1043,8 @@ function applySlopeCollision() {
 }
 
 function spawnPowerUp(x, y) {
-  const types = ["big", "fast", "invuln", "fire"];
-  const subtype = types[Math.floor(Math.random() * 3)];
+  const types = ["big", "fast", "invuln", "fire", "feather", "magnet"];
+  const subtype = types[Math.floor(Math.random() * types.length)];
   entities.push({
     kind: "powerup", subtype,
     x: x - 14, y: y - 26,
@@ -1031,6 +1076,10 @@ function applyPowerUp(type) {
     player.fireballs = 12;
     document.getElementById("hud-fire").style.display = "";
     document.getElementById("hud-fire").textContent = "🔥 12 — press X";
+  } else if (type === "feather") {
+    player.doubleJumps = (player.doubleJumps || 0) + 2;
+  } else if (type === "magnet") {
+    player.magnetTime = 12;
   }
 }
 
@@ -1038,6 +1087,7 @@ function clearPowerUp() {
   document.getElementById("hud-fire").style.display = "none";
   player.powerUp = null;
   player.fireballs = 0;
+  // Note: doubleJumps and magnetTime are separate; they clear on their own
 }
 
 function hurtPlayer(instantDeath = false) {
@@ -1085,6 +1135,7 @@ function hurtPlayer(instantDeath = false) {
         player.w = 38; player.h = 54;
         player.powerUp = null; player.powerUpTime = 0;
         player.fireballs = 0; player.fireCooldown = 0;
+        player.doubleJumps = 0; player.magnetTime = 0;
         document.getElementById("hud-fire").style.display = "none";
         player.invuln = 1.2;
         cameraSnap = true;
@@ -1311,6 +1362,92 @@ function updateEntities(dt) {
           hurtPlayer();
         }
       }
+    } else if (e.kind === "boss") {
+      if (!e.alive) continue;
+      e.t += dt;
+      e.phaseT += dt;
+      if (e.invuln > 0) e.invuln -= dt;
+      // Face player
+      e.facing = player.x < e.x + e.w/2 ? -1 : 1;
+      // Phase state machine
+      if (e.phase === "idle") {
+        e.vx *= 0.9;
+        if (e.phaseT > 1.2) { e.phase = "charge"; e.phaseT = 0; }
+      } else if (e.phase === "charge") {
+        // Rush at player
+        e.vx += e.facing * 900 * dt;
+        e.vx = Math.max(-360, Math.min(360, e.vx));
+        if (e.phaseT > 1.4) { e.phase = "jump"; e.phaseT = 0; e.vy = -580; e.vx = e.facing * 200; }
+      } else if (e.phase === "jump") {
+        e.vy += GRAVITY * 0.7 * dt;
+        if (e.phaseT > 0.8 && e.vy > 0) {
+          e.phase = "shoot"; e.phaseT = 0;
+        }
+      } else if (e.phase === "shoot") {
+        e.vx *= 0.85;
+        e.vy += GRAVITY * 0.7 * dt;
+        // Spit projectiles at player 3 times
+        if (e.phaseT > 0.2 && Math.floor(e.phaseT * 3) > Math.floor((e.phaseT - dt) * 3)) {
+          const shots = e.bossType === "ender_dragon" ? 5 : 3;
+          for (let i = 0; i < shots; i++) {
+            const angle = (i - (shots - 1) / 2) * 0.35;
+            const bx = e.x + e.w / 2, by = e.y + e.h / 2;
+            const dx = (player.x + player.w / 2) - bx;
+            const dy = (player.y + player.h / 2) - by - 60;
+            const d = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+            const spd = 320;
+            const rot = angle;
+            const vx = dx / d * spd * Math.cos(rot) - dy / d * spd * Math.sin(rot);
+            const vy = dx / d * spd * Math.sin(rot) + dy / d * spd * Math.cos(rot);
+            entities.push({
+              kind: "arrow", x: bx - 8, y: by - 4, w: 16, h: 8,
+              vx, vy, life: 3, alive: true,
+              bossShot: true, color: e.bossType === "ender_dragon" ? "#c384ee" : "#e63946",
+            });
+          }
+        }
+        if (e.phaseT > 1.4) { e.phase = "idle"; e.phaseT = 0; }
+      }
+      // Apply movement
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+      // Simple ground collision
+      if (rectVsTiles(e.x, e.y, e.w, e.h)) {
+        while (rectVsTiles(e.x, e.y, e.w, e.h)) e.y -= 1;
+        if (e.vy > 0) e.vy = 0;
+      }
+      // Stomp check
+      if (rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h })) {
+        if (player.vy > 0 && player.y + player.h - 20 < e.y + 20 && e.invuln <= 0) {
+          e.hp -= 1;
+          e.invuln = 0.8;
+          player.vy = BOUNCE_V * 1.2;
+          shake = 0.25;
+          spawnParticles(e.x + e.w/2, e.y + 20, 20,
+            { color: e.bossType === "ender_dragon" ? "#c384ee" : "#ff6a8e", life: 0.6, speed: 260, vy: -80 });
+          if (e.hp <= 0) {
+            e.alive = false;
+            shake = 0.6;
+            for (let i = 0; i < 60; i++) {
+              const a = Math.random() * Math.PI * 2, s = 200 + Math.random() * 300;
+              particles.push({ x: e.x + e.w/2, y: e.y + e.h/2,
+                vx: Math.cos(a)*s, vy: Math.sin(a)*s - 80,
+                life: 1.2, maxLife: 1.2, color: i%2 ? "#ffd45a" : "#ff5d8f",
+                r: 4, gravity: 400 });
+            }
+            // Drop coins
+            for (let i = 0; i < 12; i++) {
+              entities.push({ kind: "coin",
+                x: e.x + e.w/2 + (Math.random()-0.5) * 60,
+                y: e.y + Math.random() * 30, r: 12,
+                t: Math.random()*6.28, alive: true });
+            }
+            if (goal) goal.locked = false;
+          }
+        } else if (e.invuln <= 0) {
+          hurtPlayer();
+        }
+      }
     } else if (e.kind === "spring") {
       e.charge = Math.max(0, e.charge - dt * 3);
       if (rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h }) && player.vy > 0) {
@@ -1384,6 +1521,35 @@ function updateEntities(dt) {
             break;
           }
         }
+        // Fireball damages boss
+        if (other.kind === "boss" && other.alive && other.invuln <= 0) {
+          if (rectsOverlap(entityAABB(e), entityAABB(other))) {
+            other.hp -= 1;
+            other.invuln = 0.5;
+            e.alive = false;
+            spawnParticles(e.x, e.y, 16, { color: "#ff4400", life: 0.5, speed: 220, vy: -60 });
+            shake = 0.15;
+            if (other.hp <= 0) {
+              other.alive = false;
+              shake = 0.6;
+              for (let i = 0; i < 60; i++) {
+                const a = Math.random() * Math.PI * 2, s = 200 + Math.random() * 300;
+                particles.push({ x: other.x + other.w/2, y: other.y + other.h/2,
+                  vx: Math.cos(a)*s, vy: Math.sin(a)*s - 80,
+                  life: 1.2, maxLife: 1.2, color: i%2 ? "#ffd45a" : "#ff5d8f",
+                  r: 4, gravity: 400 });
+              }
+              for (let i = 0; i < 12; i++) {
+                entities.push({ kind: "coin",
+                  x: other.x + other.w/2 + (Math.random()-0.5) * 60,
+                  y: other.y + Math.random() * 30, r: 12,
+                  t: Math.random()*6.28, alive: true });
+              }
+              if (goal) goal.locked = false;
+            }
+            break;
+          }
+        }
       }
       // Expire after 2.5 seconds or if off screen
       if (e.age > 2.5 || e.y > tiles.length * TILE + 100) e.alive = false;
@@ -1401,7 +1567,7 @@ function updateEntities(dt) {
   );
 
   // goal
-  if (goal && !goal.reached) {
+  if (goal && !goal.reached && !goal.locked) {
     // Wide, tall hitbox — touch the pole anywhere, including by walking past.
     const gb = { x: goal.x - 24, y: goal.y, w: 48, h: TILE * 6 };
     if (rectsOverlap(gb, { x: player.x, y: player.y, w: player.w, h: player.h })) {
@@ -2008,6 +2174,8 @@ function drawEntities() {
       drawRattata(x, y, e);
     } else if (e.kind === "zubat" && e.alive) {
       drawZubat(x, y, e);
+    } else if (e.kind === "boss" && e.alive) {
+      drawBoss(x, y, e);
     } else if (e.kind === "spring") {
       drawSpring(x, y, e);
     } else if (e.kind === "powerup" && e.alive) {
@@ -2132,6 +2300,67 @@ function drawPowerUp(x, y, e) {
     ctx.beginPath();
     ctx.ellipse(cx, cy + 2, 3, 4, 0, 0, 6.283);
     ctx.fill();
+  } else if (e.subtype === "feather") {
+    // White feather with gold gradient
+    const sway = Math.sin(timeAccum * 3) * 0.15;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(sway - 0.3);
+    const fg = ctx.createLinearGradient(0, -12, 0, 10);
+    fg.addColorStop(0, "#ffffff");
+    fg.addColorStop(0.5, "#ffe088");
+    fg.addColorStop(1, "#c98a18");
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.quadraticCurveTo(8, -4, 5, 8);
+    ctx.quadraticCurveTo(0, 10, -5, 8);
+    ctx.quadraticCurveTo(-8, -4, 0, -12);
+    ctx.fill();
+    // Feather spine
+    ctx.strokeStyle = "#7a4e08";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(0, 8); ctx.stroke();
+    // Feather barbs
+    for (let i = 0; i < 4; i++) {
+      const y1 = -8 + i * 4;
+      ctx.beginPath();
+      ctx.moveTo(-1, y1); ctx.lineTo(-5, y1 + 2); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(1, y1); ctx.lineTo(5, y1 + 2); ctx.stroke();
+    }
+    ctx.restore();
+  } else if (e.subtype === "magnet") {
+    // Horseshoe magnet — red top, silver poles
+    ctx.fillStyle = "#e63946";
+    ctx.beginPath();
+    ctx.arc(cx, cy - 2, 10, Math.PI, 0);
+    ctx.lineTo(cx + 10, cy + 2);
+    ctx.lineTo(cx - 10, cy + 2);
+    ctx.closePath();
+    ctx.fill();
+    // Silver ends
+    ctx.fillStyle = "#c8c8d0";
+    ctx.fillRect(cx - 11, cy + 2, 6, 10);
+    ctx.fillRect(cx + 5, cy + 2, 6, 10);
+    // N/S labels
+    ctx.fillStyle = "#0a0a1a";
+    ctx.font = "bold 8px Trebuchet MS, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("N", cx - 8, cy + 10);
+    ctx.fillText("S", cx + 8, cy + 10);
+    ctx.textAlign = "start";
+    // Magnetic sparkle lines
+    ctx.strokeStyle = "rgba(255,255,255,0.7)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const a = timeAccum * 4 + i * (Math.PI * 2 / 3);
+      const dx = Math.cos(a) * 15, dy = Math.sin(a) * 15;
+      ctx.beginPath();
+      ctx.moveTo(cx + dx * 0.7, cy + dy * 0.7);
+      ctx.lineTo(cx + dx, cy + dy);
+      ctx.stroke();
+    }
   }
 }
 
@@ -2531,6 +2760,180 @@ function drawFlyer(x, y, e) {
   ctx.stroke();
   ctx.fillStyle = "#ffd45a";
   ctx.beginPath(); ctx.arc(cx - 2, cy - 18, 2, 0, 6.283); ctx.fill();
+}
+
+function drawBoss(x, y, e) {
+  const cx = x + e.w/2, cy = y + e.h/2;
+  const flash = e.invuln > 0 && Math.floor(e.invuln * 20) % 2 === 0;
+  ctx.save();
+  if (flash) ctx.globalAlpha = 0.5;
+  if (e.bossType === "spider_queen") {
+    // Big red pulsing body with a crown, 6 legs, angry face
+    const pulse = 1 + Math.sin(e.t * 4) * 0.05;
+    const bx = cx, by = cy + 6;
+    // Legs first (behind body)
+    ctx.strokeStyle = "#5a0a1a";
+    ctx.lineWidth = 5;
+    for (let i = 0; i < 6; i++) {
+      const side = i < 3 ? -1 : 1;
+      const idx = i % 3;
+      const swing = Math.sin(e.t * 4 + i) * 8;
+      const ax = bx + side * (18 + idx * 8);
+      const ay = by + 6;
+      const dx = side * (30 + idx * 10) + swing;
+      const dy = 30 + Math.abs(swing);
+      ctx.beginPath();
+      ctx.moveTo(bx + side * 18, by);
+      ctx.quadraticCurveTo(ax, ay, bx + side * (30 + idx * 12) + swing, by + 40);
+      ctx.stroke();
+    }
+    // Body — big red gradient sphere
+    const bg = ctx.createRadialGradient(bx - 10, by - 10, 4, bx, by, 44);
+    bg.addColorStop(0, "#ff8aa6");
+    bg.addColorStop(0.55, "#e63946");
+    bg.addColorStop(1, "#7a0a1a");
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.ellipse(bx, by, 40 * pulse, 32 * pulse, 0, 0, 6.283);
+    ctx.fill();
+    // Crown!
+    ctx.fillStyle = "#ffd45a";
+    ctx.beginPath();
+    ctx.moveTo(bx - 20, by - 30);
+    ctx.lineTo(bx - 14, by - 44);
+    ctx.lineTo(bx - 8, by - 32);
+    ctx.lineTo(bx, by - 46);
+    ctx.lineTo(bx + 8, by - 32);
+    ctx.lineTo(bx + 14, by - 44);
+    ctx.lineTo(bx + 20, by - 30);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#c98a18";
+    ctx.fillRect(bx - 20, by - 28, 40, 4);
+    // Crown jewels
+    ctx.fillStyle = "#ff5d8f";
+    ctx.beginPath(); ctx.arc(bx, by - 40, 2.5, 0, 6.283); ctx.fill();
+    ctx.fillStyle = "#4cc9f0";
+    ctx.beginPath(); ctx.arc(bx - 14, by - 40, 2, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx + 14, by - 40, 2, 0, 6.283); ctx.fill();
+    // Angry eyes (4 of them)
+    ctx.fillStyle = "#fff";
+    for (const [dx, dy, r] of [[-14,-8,4.5],[-4,-10,3.5],[4,-10,3.5],[14,-8,4.5]]) {
+      ctx.beginPath(); ctx.arc(bx + dx, by + dy, r, 0, 6.283); ctx.fill();
+    }
+    ctx.fillStyle = "#0a0a0a";
+    for (const [dx, dy, r] of [[-14,-8,2.5],[-4,-10,2],[4,-10,2],[14,-8,2.5]]) {
+      ctx.beginPath(); ctx.arc(bx + dx + e.facing, by + dy, r, 0, 6.283); ctx.fill();
+    }
+    // Angry brows
+    ctx.strokeStyle = "#3a0a14";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(bx - 22, by - 16); ctx.lineTo(bx - 6, by - 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx + 6, by - 12); ctx.lineTo(bx + 22, by - 16); ctx.stroke();
+    // Fangs
+    ctx.strokeStyle = "#3a0a14";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(bx, by + 8, 12, 0.2, Math.PI - 0.2); ctx.stroke();
+    ctx.fillStyle = "#fff";
+    for (let i = 0; i < 4; i++) {
+      const sx = bx - 8 + i * 6;
+      ctx.beginPath();
+      ctx.moveTo(sx, by + 10);
+      ctx.lineTo(sx + 2, by + 18);
+      ctx.lineTo(sx + 4, by + 10);
+      ctx.fill();
+    }
+  } else if (e.bossType === "ender_dragon") {
+    // Big purple dragon head with wings + horns
+    const bx = cx, by = cy + 8;
+    const wingFlap = Math.sin(e.t * 6) * 10;
+    // Wings (behind)
+    ctx.fillStyle = "#3a1f5a";
+    ctx.beginPath();
+    ctx.moveTo(bx - 20, by - 10);
+    ctx.quadraticCurveTo(bx - 60, by - 30 - wingFlap, bx - 50, by + 10);
+    ctx.quadraticCurveTo(bx - 30, by, bx - 20, by);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bx + 20, by - 10);
+    ctx.quadraticCurveTo(bx + 60, by - 30 - wingFlap, bx + 50, by + 10);
+    ctx.quadraticCurveTo(bx + 30, by, bx + 20, by);
+    ctx.closePath(); ctx.fill();
+    // Wing veins
+    ctx.strokeStyle = "#7a4bce";
+    ctx.lineWidth = 1.2;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(bx - 20, by);
+      ctx.lineTo(bx - 55 + i*4, by - 15 - wingFlap + i*8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx + 20, by);
+      ctx.lineTo(bx + 55 - i*4, by - 15 - wingFlap + i*8);
+      ctx.stroke();
+    }
+    // Body — pixelated black cube (Minecraft style)
+    ctx.fillStyle = "#1a1a2a";
+    ctx.fillRect(bx - 32, by - 20, 64, 46);
+    ctx.fillStyle = "#2a2a4a";
+    // Pixel highlights
+    for (let px = 0; px < 8; px++) {
+      for (let py = 0; py < 6; py++) {
+        if ((px + py) % 2 === 0) {
+          ctx.fillRect(bx - 32 + px * 8, by - 20 + py * 8, 8, 8);
+        }
+      }
+    }
+    // Head
+    ctx.fillStyle = "#0a0a1a";
+    ctx.fillRect(bx - 22, by - 34, 44, 22);
+    // Horns
+    ctx.fillStyle = "#4a4a6a";
+    ctx.beginPath();
+    ctx.moveTo(bx - 22, by - 32); ctx.lineTo(bx - 30, by - 46); ctx.lineTo(bx - 16, by - 32); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bx + 22, by - 32); ctx.lineTo(bx + 30, by - 46); ctx.lineTo(bx + 16, by - 32); ctx.fill();
+    // Purple glowing eyes
+    ctx.fillStyle = "#c384ee";
+    ctx.fillRect(bx - 14, by - 26, 8, 4);
+    ctx.fillRect(bx + 6, by - 26, 8, 4);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(bx - 12, by - 25, 2, 2);
+    ctx.fillRect(bx + 8, by - 25, 2, 2);
+    // Fanged mouth
+    ctx.fillStyle = "#6a1a3a";
+    ctx.fillRect(bx - 12, by - 16, 24, 4);
+    ctx.fillStyle = "#fff";
+    for (let i = 0; i < 5; i++) ctx.fillRect(bx - 11 + i * 5, by - 16, 2, 3);
+    // Ender particle glow around
+    for (let i = 0; i < 6; i++) {
+      const a = e.t * 0.5 + i * (Math.PI / 3);
+      const r = 60 + Math.sin(e.t + i) * 6;
+      ctx.fillStyle = "rgba(195,132,238,0.5)";
+      ctx.beginPath();
+      ctx.arc(bx + Math.cos(a) * r, by + Math.sin(a) * r * 0.5, 3, 0, 6.283);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+  // Boss HP bar above
+  const hpBarW = 100, hpBarH = 8;
+  const bhx = x + e.w/2 - hpBarW/2;
+  const bhy = y - 22;
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(bhx - 2, bhy - 2, hpBarW + 4, hpBarH + 4);
+  ctx.fillStyle = "#2a1230";
+  ctx.fillRect(bhx, bhy, hpBarW, hpBarH);
+  const hpPct = Math.max(0, e.hp / e.maxHp);
+  const hpg = ctx.createLinearGradient(bhx, 0, bhx + hpBarW, 0);
+  hpg.addColorStop(0, "#ff5d8f");
+  hpg.addColorStop(1, "#ffd45a");
+  ctx.fillStyle = hpg;
+  ctx.fillRect(bhx, bhy, hpBarW * hpPct, hpBarH);
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 10px Trebuchet MS, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("BOSS · " + e.hp + "/" + e.maxHp, x + e.w/2, bhy - 4);
+  ctx.textAlign = "start";
 }
 
 function drawSpring(x, y, e) {
