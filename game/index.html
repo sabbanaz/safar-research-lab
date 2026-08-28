@@ -386,6 +386,7 @@
    ────────────────────────────────────────────────────────────── */
 
 const TILE = 48;
+const DEPTH_3D = 7;   // block extrusion depth in px — raise for chunkier 3D, lower for flatter
 const VIEW_W = 960;
 const VIEW_H = 540;
 
@@ -1874,7 +1875,7 @@ function drawMountain(x, y, w, h, baseColor, capColor) {
 
 function drawTiles() {
   const p = level.palette;
-  const D = 13;                       // 3D extrusion depth in px
+  const D = DEPTH_3D;
   const startX = Math.floor(camera.x / TILE) - 1;
   const endX = startX + Math.ceil(VIEW_W / TILE) + 3;
   const startY = Math.floor(camera.y / TILE) - 1;
@@ -1908,7 +1909,7 @@ function drawTiles() {
 
       // ── CAST SHADOW into the empty space below-left (grounds the cube) ──
       if (openBelow) {
-        ctx.fillStyle = "rgba(0,0,0,0.22)";
+        ctx.fillStyle = "rgba(0,0,0,0.16)";
         ctx.beginPath();
         ctx.moveTo(x, y + TILE);
         ctx.lineTo(x + TILE, y + TILE);
@@ -1955,8 +1956,8 @@ function drawTiles() {
       // ── RIGHT SIDE FACE (darkest — light comes from upper-left) ──
       if (openRight) {
         const sg = ctx.createLinearGradient(x + TILE, y, x + TILE + D, y + TILE);
-        sg.addColorStop(0, shade(p.groundBody, -45));
-        sg.addColorStop(1, shade(p.groundShade, -55));
+        sg.addColorStop(0, shade(p.groundBody, -32));
+        sg.addColorStop(1, shade(p.groundShade, -40));
         ctx.fillStyle = sg;
         ctx.beginPath();
         ctx.moveTo(x + TILE, y);
@@ -2044,7 +2045,7 @@ function drawTiles() {
           }
         }
         // Outline the top face for that crisp voxel edge
-        ctx.strokeStyle = "rgba(0,0,0,0.25)";
+        ctx.strokeStyle = "rgba(0,0,0,0.16)";
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x, y);
@@ -2064,7 +2065,7 @@ function drawTiles() {
 }
 
 function drawQBlock(x, y, spent) {
-  const D = 13;
+  const D = DEPTH_3D;
   const wob = spent ? 0 : Math.sin(timeAccum * 4) * 1.5;
   const yy = y + wob;
   const faceHi   = spent ? "#8e8468" : "#ffd45a";
