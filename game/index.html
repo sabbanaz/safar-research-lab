@@ -276,6 +276,7 @@
         <span><kbd>←</kbd> <kbd>→</kbd> move</span>
         <span><kbd>SHIFT</kbd> run</span>
         <span><kbd>SPACE</kbd> / <kbd>↑</kbd> jump</span>
+        <span><kbd>T</kbd> laser</span>
         <span><kbd>ESC</kbd> pause</span>
       </div>
     </div>
@@ -792,6 +793,7 @@ function createPlayer(x, y) {
     powerUpTime: 0,      // seconds remaining (0 = none)
     fireballs: 0,        // ammo remaining (fire power-up)
     fireCooldown: 0,     // time until next fireball can be thrown
+    laserCooldown: 0,    // time until next laser shot (T key)
   };
 }
 
@@ -983,11 +985,19 @@ function updatePlayer(dt) {
       { color: "rgba(255,255,255,0.65)", life: 0.9, speed: 20, vy: -50, r: 1.5, gravity: -80 });
   }
 
-  // X collision
+  // X collision.
+  // The push-out loop is capped: if the player ever ends up fully embedded
+  // in terrain (a bad spawn, a teleport, a resize) an uncapped loop would
+  // walk them sideways across the whole level looking for open space, which
+  // reads in-game as the character rocketing away or running on the spot.
+  // Capping and reverting keeps a bad state local instead of catastrophic.
+  const prevX = player.x;
   player.x += player.vx * dt;
   if (rectVsTiles(player.x, player.y, player.w, player.h)) {
-    const step = player.vx > 0 ? -1 : 1;
-    while (rectVsTiles(player.x, player.y, player.w, player.h)) player.x += step;
+    const dir = player.vx > 0 ? -1 : 1;
+    let guard = TILE + 8;
+    while (guard-- > 0 && rectVsTiles(player.x, player.y, player.w, player.h)) player.x += dir;
+    if (rectVsTiles(player.x, player.y, player.w, player.h)) player.x = prevX;
     player.vx = 0;
   }
 
@@ -1012,8 +1022,9 @@ function updatePlayer(dt) {
         }
       }
     }
-    const step = player.vy > 0 ? -1 : 1;
-    while (rectVsTiles(player.x, player.y, player.w, player.h)) player.y += step;
+    const stepY = player.vy > 0 ? -1 : 1;
+    let guardY = TILE * 2;
+    while (guardY-- > 0 && rectVsTiles(player.x, player.y, player.w, player.h)) player.y += stepY;
     if (player.vy > 0) {
       player.onGround = true;
       if (!wasOnGround && player.vy > 400) {
@@ -1087,6 +1098,37 @@ function updatePlayer(dt) {
         player.powerUpTime = 0;
       }
     }
+  }
+
+  // ── Laser: every character can fire one, no power-up needed (T key) ──
+  if (player.laserCooldown > 0) player.laserCooldown -= dt;
+  if (player.laserCooldown <= 0 && consumeJustPressed("KeyT")) {
+    player.laserCooldown = 0.3;
+    const col = LASER_COLORS[selectedChar] || "#4cc9f0";
+    const muzzleX = player.x + (player.facing > 0 ? player.w : 0);
+    const muzzleY = player.y + player.h * 0.42;
+    entities.push({
+      kind: "laser",
+      x: muzzleX - (player.facing > 0 ? 0 : 26),
+      y: muzzleY - 4,
+      w: 26, h: 8,
+      vx: player.facing * 980,
+      dir: player.facing,
+      color: col,
+      life: 1.1, age: 0, alive: true,
+    });
+    // Muzzle flash
+    for (let i = 0; i < 9; i++) {
+      const a = (Math.random() - 0.5) * 1.1;
+      particles.push({
+        x: muzzleX, y: muzzleY,
+        vx: Math.cos(a) * player.facing * (150 + Math.random() * 160),
+        vy: Math.sin(a) * 120,
+        life: 0.22, maxLife: 0.22, color: i % 2 ? col : "#ffffff",
+        r: 2.5, gravity: 0,
+      });
+    }
+    shake = Math.max(shake, 0.06);
   }
 }
 
@@ -1208,6 +1250,7 @@ function hurtPlayer(instantDeath = false) {
         player.w = 38; player.h = 54;
         player.powerUp = null; player.powerUpTime = 0;
         player.fireballs = 0; player.fireCooldown = 0;
+        player.laserCooldown = 0;
         player.doubleJumps = 0; player.magnetTime = 0;
         document.getElementById("hud-fire").style.display = "none";
         player.invuln = 1.2;
@@ -1558,6 +1601,71 @@ function updateEntities(dt) {
         spawnParticles(e.x + e.w/2, e.y + e.h/2, 26,
           { color: colors[e.subtype], life: 0.7, speed: 300, vy: -160, r: 3 });
       }
+    } else if (e.kind === "laser") {
+      if (!e.alive) continue;
+      e.age += dt;
+      e.x += e.vx * dt;                       // flat trajectory, no gravity
+      // Stopped by terrain
+      if (rectVsTiles(e.x, e.y, e.w, e.h)) {
+        e.alive = false;
+        for (let i = 0; i < 10; i++) {
+          const a = Math.PI + (Math.random() - 0.5) * 2;
+          particles.push({
+            x: e.x + e.w / 2, y: e.y + e.h / 2,
+            vx: Math.cos(a) * e.dir * (100 + Math.random() * 180),
+            vy: (Math.random() - 0.5) * 220,
+            life: 0.3, maxLife: 0.3, color: i % 2 ? e.color : "#ffffff",
+            r: 2.5, gravity: 240,
+          });
+        }
+      }
+      // Vaporises regular enemies
+      if (e.alive) {
+        for (const other of entities) {
+          if (["walker","flyer","jellyfish","creeper","skeleton","rattata","zubat"].includes(other.kind)
+              && other.alive && rectsOverlap(entityAABB(e), entityAABB(other))) {
+            other.alive = false;
+            e.alive = false;
+            spawnParticles(other.x + (other.w||0)/2, other.y + (other.h||0)/2, 20,
+              { color: e.color, life: 0.55, speed: 260, vy: -90, r: 3 });
+            coins += 1;
+            ui.hudCoins.textContent = "★ " + coins;
+            document.getElementById("hud-next").textContent =
+              "+1UP at " + (Math.floor(coins / 20) * 20 + 20);
+            if (coins % 20 === 0) { lives += 1; ui.hudLives.textContent = "♥ " + lives; }
+            break;
+          }
+          // Chips a boss
+          if (other.kind === "boss" && other.alive && other.invuln <= 0
+              && rectsOverlap(entityAABB(e), entityAABB(other))) {
+            other.hp -= 1;
+            other.invuln = 0.5;
+            e.alive = false;
+            shake = 0.15;
+            spawnParticles(e.x, e.y, 18, { color: e.color, life: 0.5, speed: 240, vy: -60 });
+            if (other.hp <= 0) {
+              other.alive = false;
+              shake = 0.6;
+              for (let i = 0; i < 60; i++) {
+                const a = Math.random() * Math.PI * 2, s = 200 + Math.random() * 300;
+                particles.push({ x: other.x + other.w/2, y: other.y + other.h/2,
+                  vx: Math.cos(a)*s, vy: Math.sin(a)*s - 80,
+                  life: 1.2, maxLife: 1.2, color: i % 2 ? "#ffd45a" : "#ff5d8f",
+                  r: 4, gravity: 400 });
+              }
+              for (let i = 0; i < 12; i++) {
+                entities.push({ kind: "coin",
+                  x: other.x + other.w/2 + (Math.random()-0.5) * 60,
+                  y: other.y + Math.random() * 30, r: 12,
+                  t: Math.random()*6.28, alive: true });
+              }
+              if (goal) goal.locked = false;
+            }
+            break;
+          }
+        }
+      }
+      if (e.age > e.life) e.alive = false;
     } else if (e.kind === "fireball") {
       if (!e.alive) continue;
       e.age += dt;
@@ -1636,7 +1744,8 @@ function updateEntities(dt) {
   entities = entities.filter(e =>
     !(e.kind === "coin" && !e.alive) &&
     !(e.kind === "powerup" && !e.alive) &&
-    !(e.kind === "fireball" && !e.alive)
+    !(e.kind === "fireball" && !e.alive) &&
+    !(e.kind === "laser" && !e.alive)
   );
 
   // goal
@@ -2200,6 +2309,14 @@ function drawMountain(x, y, w, h, baseColor, capColor) {
 //  cube faces with a skew transform. Baking keeps it fast: a few
 //  hundred drawImage calls per frame instead of ~200k fillRects.
 // ───────────────────────────────────────────────────────────────
+// Each hero's laser is tinted to their own palette
+const LASER_COLORS = {
+  sonic: "#4cc9f0", tails: "#ffb43c", knuckles: "#ff3b6e",
+  shadow: "#ff2a2a", amy: "#ff9dcd", steve: "#3fbfd8",
+  alex: "#7ee06a", pikachu: "#ffe23c", charmander: "#ff8a2a",
+  bulbasaur: "#7fe6d8", magikarp: "#ff7a4a",
+};
+
 const TEX = {};
 const TEXEL = 8;              // 8x8 texels over a 48px tile = 6px blocks.
                               // 16x16 was 3px and read as noise, not pixel art.
@@ -2766,10 +2883,43 @@ function drawEntities() {
       drawSpring(x, y, e);
     } else if (e.kind === "powerup" && e.alive) {
       drawPowerUp(x, y, e);
+    } else if (e.kind === "laser" && e.alive) {
+      drawLaser(x, y, e);
     } else if (e.kind === "fireball" && e.alive) {
       drawFireball(x, y, e);
     }
   }
+}
+
+function drawLaser(x, y, e) {
+  const cy = y + e.h / 2;
+  const fade = Math.max(0, 1 - e.age / e.life);
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";   // beams add light rather than paint over
+  // Outer bloom
+  const glow = ctx.createLinearGradient(x - e.dir * 30, 0, x + e.w + e.dir * 6, 0);
+  glow.addColorStop(0, "rgba(255,255,255,0)");
+  glow.addColorStop(0.55, e.color);
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.globalAlpha = 0.42 * fade;
+  ctx.fillStyle = glow;
+  ctx.fillRect(x - e.dir * 30, cy - 9, e.w + 36, 18);
+  // Beam body
+  ctx.globalAlpha = 0.95 * fade;
+  ctx.fillStyle = e.color;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(x, cy - 3.5, e.w, 7, 3.5)
+                : ctx.rect(x, cy - 3.5, e.w, 7);
+  ctx.fill();
+  // White-hot core
+  ctx.globalAlpha = fade;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(x + 3, cy - 1.4, e.w - 6, 2.8);
+  // Leading spark
+  ctx.beginPath();
+  ctx.arc(x + (e.dir > 0 ? e.w : 0), cy, 4.2 * fade + 1.5, 0, 6.283);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawFireball(x, y, e) {
