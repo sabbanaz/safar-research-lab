@@ -755,12 +755,23 @@ function loadLevel(idx) {
         tiles[y][x] = ".";
       } else if (ch === "B") {
         const bossType = (level.id === 8 || level.id === 5) ? "ender_dragon" : "spider_queen";
+        let floorY = (y + 2) * TILE;
+        for (let gy = y + 1; gy < tiles.length; gy++) {
+          if (isSolid(x, gy)) { floorY = gy * TILE; break; }
+        }
+        const flying = bossType === "ender_dragon";
+        const bw = flying ? 340 : 300;
+        const bh = flying ? 200 : 210;
         entities.push({
-          kind: "boss", bossType,
-          x: px - 20, y: py - 24, w: 88, h: 84,
-          vx: 0, vy: 0, hp: 5, maxHp: 5, alive: true,
+          kind: "boss", bossType, flying,
+          x: px - bw / 2, y: floorY - bh - (flying ? 70 : 0),
+          w: bw, h: bh,
+          vx: 0, vy: 0,
+          hp: 4, maxHp: 4,          // hits per life
+          lives: 3, maxLives: 3,    // three lives to take one down
+          alive: true,
           phase: "idle", phaseT: 0, invuln: 0, t: 0,
-          facing: -1, baseY: py - 24,
+          facing: -1, floorY, hoverY: floorY - bh - 70,
         });
         tiles[y][x] = ".";
       }
@@ -1132,6 +1143,53 @@ function updatePlayer(dt) {
   }
 }
 
+// Boss damage with a three-life structure: draining a bar costs a life and
+// triggers an enrage; only the last one actually kills.
+function damageBoss(b, amount) {
+  if (!b.alive || b.invuln > 0) return;
+  b.hp -= amount;
+  b.invuln = 0.7;
+  shake = 0.3;
+  const col = b.bossType === "ender_dragon" ? "#c384ee" : "#ff6a8e";
+  spawnParticles(b.x + b.w / 2, b.y + b.h * 0.4, 26,
+    { color: col, life: 0.7, speed: 300, vy: -110, r: 4 });
+  if (b.hp > 0) return;
+
+  b.lives -= 1;
+  if (b.lives > 0) {
+    b.hp = b.maxHp;
+    b.phase = "enrage"; b.phaseT = 0;
+    b.invuln = 1.5;
+    shake = 0.55;
+    for (let i = 0; i < 46; i++) {
+      const a = Math.random() * Math.PI * 2, s = 220 + Math.random() * 320;
+      particles.push({ x: b.x + b.w / 2, y: b.y + b.h / 2,
+        vx: Math.cos(a) * s, vy: Math.sin(a) * s - 70,
+        life: 1.0, maxLife: 1.0, color: i % 2 ? col : "#ffffff",
+        r: 5, gravity: 260 });
+    }
+    return;
+  }
+
+  b.alive = false;
+  shake = 0.85;
+  for (let i = 0; i < 90; i++) {
+    const a = Math.random() * Math.PI * 2, s = 240 + Math.random() * 380;
+    particles.push({ x: b.x + b.w / 2, y: b.y + b.h / 2,
+      vx: Math.cos(a) * s, vy: Math.sin(a) * s - 100,
+      life: 1.5, maxLife: 1.5,
+      color: i % 3 === 0 ? "#ffd45a" : (i % 3 === 1 ? col : "#ffffff"),
+      r: 5, gravity: 380 });
+  }
+  for (let i = 0; i < 24; i++) {
+    entities.push({ kind: "coin",
+      x: b.x + b.w / 2 + (Math.random() - 0.5) * 200,
+      y: b.y + Math.random() * 80, r: 12,
+      t: Math.random() * 6.28, alive: true });
+  }
+  if (goal) goal.locked = false;
+}
+
 function bumpQBlock(tx, ty) {
   if (tileAt(tx, ty) !== "Q") return;
   tiles[ty][tx] = "q";
@@ -1480,87 +1538,111 @@ function updateEntities(dt) {
       }
     } else if (e.kind === "boss") {
       if (!e.alive) continue;
-      e.t += dt;
-      e.phaseT += dt;
+      e.t += dt; e.phaseT += dt;
       if (e.invuln > 0) e.invuln -= dt;
-      // Face player
-      e.facing = player.x < e.x + e.w/2 ? -1 : 1;
-      // Phase state machine
-      if (e.phase === "idle") {
-        e.vx *= 0.9;
-        if (e.phaseT > 1.2) { e.phase = "charge"; e.phaseT = 0; }
-      } else if (e.phase === "charge") {
-        // Rush at player
-        e.vx += e.facing * 900 * dt;
-        e.vx = Math.max(-360, Math.min(360, e.vx));
-        if (e.phaseT > 1.4) { e.phase = "jump"; e.phaseT = 0; e.vy = -580; e.vx = e.facing * 200; }
-      } else if (e.phase === "jump") {
-        e.vy += GRAVITY * 0.7 * dt;
-        if (e.phaseT > 0.8 && e.vy > 0) {
-          e.phase = "shoot"; e.phaseT = 0;
-        }
-      } else if (e.phase === "shoot") {
+      e.facing = player.x < e.x + e.w / 2 ? -1 : 1;
+
+      // Every life lost makes the fight faster and more aggressive
+      const rage = 1 + (e.maxLives - e.lives) * 0.45;
+
+      if (e.phase === "enrage") {
+        // Roar between lives: invulnerable, throwing off shockwaves
         e.vx *= 0.85;
-        e.vy += GRAVITY * 0.7 * dt;
-        // Spit projectiles at player 3 times
-        if (e.phaseT > 0.2 && Math.floor(e.phaseT * 3) > Math.floor((e.phaseT - dt) * 3)) {
-          const shots = e.bossType === "ender_dragon" ? 5 : 3;
-          for (let i = 0; i < shots; i++) {
-            const angle = (i - (shots - 1) / 2) * 0.35;
-            const bx = e.x + e.w / 2, by = e.y + e.h / 2;
-            const dx = (player.x + player.w / 2) - bx;
-            const dy = (player.y + player.h / 2) - by - 60;
-            const d = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-            const spd = 320;
-            const rot = angle;
-            const vx = dx / d * spd * Math.cos(rot) - dy / d * spd * Math.sin(rot);
-            const vy = dx / d * spd * Math.sin(rot) + dy / d * spd * Math.cos(rot);
-            entities.push({
-              kind: "arrow", x: bx - 8, y: by - 4, w: 16, h: 8,
-              vx, vy, life: 3, alive: true,
-              bossShot: true, color: e.bossType === "ender_dragon" ? "#c384ee" : "#e63946",
-            });
-          }
+        if (!e.flying) e.vy += GRAVITY * 0.6 * dt;
+        if (Math.random() < 0.5) {
+          const a = Math.random() * Math.PI * 2;
+          particles.push({
+            x: e.x + e.w / 2, y: e.y + e.h / 2,
+            vx: Math.cos(a) * 420, vy: Math.sin(a) * 420,
+            life: 0.7, maxLife: 0.7,
+            color: e.bossType === "ender_dragon" ? "#c384ee" : "#ff7a2a",
+            r: 5, gravity: 0,
+          });
         }
-        if (e.phaseT > 1.4) { e.phase = "idle"; e.phaseT = 0; }
+        if (e.phaseT > 1.5) { e.phase = "idle"; e.phaseT = 0; }
+      } else if (e.flying) {
+        // ── Flying dragon: hover, swoop, breathe fire ──
+        if (e.phase === "idle") {
+          e.y += ((e.hoverY + Math.sin(e.t * 1.6) * 26) - e.y) * 2.4 * dt;
+          e.vx += ((player.x - e.x - e.w / 2) * 0.9 - e.vx) * 1.6 * dt;
+          e.vx = Math.max(-190 * rage, Math.min(190 * rage, e.vx));
+          if (e.phaseT > 1.8 / rage) { e.phase = "swoop"; e.phaseT = 0; }
+        } else if (e.phase === "swoop") {
+          e.y += ((player.y - e.h * 0.45) - e.y) * 3.0 * dt;
+          e.vx += e.facing * 700 * rage * dt;
+          e.vx = Math.max(-460 * rage, Math.min(460 * rage, e.vx));
+          if (e.phaseT > 1.3) { e.phase = "breathe"; e.phaseT = 0; }
+        } else if (e.phase === "breathe") {
+          e.y += ((e.hoverY + Math.sin(e.t * 1.6) * 26) - e.y) * 2.0 * dt;
+          e.vx *= 0.9;
+          if (Math.floor(e.phaseT * 4) > Math.floor((e.phaseT - dt) * 4)) {
+            const mx = e.x + (e.facing > 0 ? e.w - 30 : 30);
+            const my = e.y + e.h * 0.32;
+            for (let k = -2; k <= 2; k++) {
+              entities.push({
+                kind: "arrow", fire: true, bossShot: true,
+                x: mx - 11, y: my - 11, w: 22, h: 22,
+                vx: e.facing * (300 + Math.random() * 130),
+                vy: k * 58 + (Math.random() - 0.5) * 40,
+                life: 1.5, alive: true, color: "#c384ee",
+              });
+            }
+          }
+          if (e.phaseT > 1.5) { e.phase = "idle"; e.phaseT = 0; }
+        }
+      } else {
+        // ── Ground colossus: stomp forward, leap, fireball volley ──
+        e.vy += GRAVITY * 0.85 * dt;
+        if (e.phase === "idle") {
+          e.vx *= 0.9;
+          if (e.phaseT > 1.0 / rage) { e.phase = "charge"; e.phaseT = 0; }
+        } else if (e.phase === "charge") {
+          e.vx += e.facing * 760 * rage * dt;
+          e.vx = Math.max(-330 * rage, Math.min(330 * rage, e.vx));
+          if (e.phaseT > 1.4) {
+            e.phase = "jump"; e.phaseT = 0;
+            e.vy = -720; e.vx = e.facing * 210 * rage;
+          }
+        } else if (e.phase === "jump") {
+          if (e.phaseT > 0.7 && e.vy > 0) { e.phase = "volley"; e.phaseT = 0; }
+        } else if (e.phase === "volley") {
+          e.vx *= 0.86;
+          // Fireballs flung from the limbs, fanned wider as it weakens
+          if (Math.floor(e.phaseT * 3) > Math.floor((e.phaseT - dt) * 3)) {
+            const shots = 4 + (e.maxLives - e.lives);
+            for (let k = 0; k < shots; k++) {
+              const spread = (k - (shots - 1) / 2) * 0.3;
+              const bx = e.x + e.w / 2, by = e.y + e.h * 0.5;
+              const dx = (player.x + player.w / 2) - bx;
+              const dy = (player.y + player.h / 2) - by;
+              const d = Math.max(1, Math.hypot(dx, dy));
+              const ux = dx / d, uy = dy / d, sp = 330;
+              entities.push({
+                kind: "arrow", fire: true, bossShot: true,
+                x: bx - 11, y: by - 11, w: 22, h: 22,
+                vx: (ux * Math.cos(spread) - uy * Math.sin(spread)) * sp,
+                vy: (ux * Math.sin(spread) + uy * Math.cos(spread)) * sp,
+                life: 1.9, alive: true, color: "#ff7a2a",
+              });
+            }
+          }
+          if (e.phaseT > 1.6) { e.phase = "idle"; e.phaseT = 0; }
+        }
       }
-      // Apply movement
+
       e.x += e.vx * dt;
       e.y += e.vy * dt;
-      // Simple ground collision
-      if (rectVsTiles(e.x, e.y, e.w, e.h)) {
-        while (rectVsTiles(e.x, e.y, e.w, e.h)) e.y -= 1;
-        if (e.vy > 0) e.vy = 0;
-      }
-      // Stomp check
+      if (!e.flying && e.y + e.h > e.floorY) { e.y = e.floorY - e.h; e.vy = 0; }
+      if (e.flying) e.y = Math.max(20, Math.min(e.floorY - e.h * 0.5, e.y));
+      e.x = Math.max(-40, Math.min(tiles[0].length * TILE - e.w + 40, e.x));
+
+      // Stomp the head to damage it; touching it anywhere else hurts
       if (rectsOverlap(entityAABB(e), { x: player.x, y: player.y, w: player.w, h: player.h })) {
-        if (player.vy > 0 && player.y + player.h - 20 < e.y + 20 && e.invuln <= 0) {
-          e.hp -= 1;
-          e.invuln = 0.8;
-          player.vy = BOUNCE_V * 1.2;
-          shake = 0.25;
-          spawnParticles(e.x + e.w/2, e.y + 20, 20,
-            { color: e.bossType === "ender_dragon" ? "#c384ee" : "#ff6a8e", life: 0.6, speed: 260, vy: -80 });
-          if (e.hp <= 0) {
-            e.alive = false;
-            shake = 0.6;
-            for (let i = 0; i < 60; i++) {
-              const a = Math.random() * Math.PI * 2, s = 200 + Math.random() * 300;
-              particles.push({ x: e.x + e.w/2, y: e.y + e.h/2,
-                vx: Math.cos(a)*s, vy: Math.sin(a)*s - 80,
-                life: 1.2, maxLife: 1.2, color: i%2 ? "#ffd45a" : "#ff5d8f",
-                r: 4, gravity: 400 });
-            }
-            // Drop coins
-            for (let i = 0; i < 12; i++) {
-              entities.push({ kind: "coin",
-                x: e.x + e.w/2 + (Math.random()-0.5) * 60,
-                y: e.y + Math.random() * 30, r: 12,
-                t: Math.random()*6.28, alive: true });
-            }
-            if (goal) goal.locked = false;
-          }
-        } else if (e.invuln <= 0) {
+        const stomped = player.vy > 0 && player.y + player.h - 26 < e.y + 34;
+        if (stomped && e.invuln <= 0) {
+          damageBoss(e, 1);
+          player.vy = BOUNCE_V * 1.25;
+        } else if (e.invuln <= 0 && !stomped) {
           hurtPlayer();
         }
       }
@@ -1638,29 +1720,9 @@ function updateEntities(dt) {
           // Chips a boss
           if (other.kind === "boss" && other.alive && other.invuln <= 0
               && rectsOverlap(entityAABB(e), entityAABB(other))) {
-            other.hp -= 1;
-            other.invuln = 0.5;
             e.alive = false;
-            shake = 0.15;
             spawnParticles(e.x, e.y, 18, { color: e.color, life: 0.5, speed: 240, vy: -60 });
-            if (other.hp <= 0) {
-              other.alive = false;
-              shake = 0.6;
-              for (let i = 0; i < 60; i++) {
-                const a = Math.random() * Math.PI * 2, s = 200 + Math.random() * 300;
-                particles.push({ x: other.x + other.w/2, y: other.y + other.h/2,
-                  vx: Math.cos(a)*s, vy: Math.sin(a)*s - 80,
-                  life: 1.2, maxLife: 1.2, color: i % 2 ? "#ffd45a" : "#ff5d8f",
-                  r: 4, gravity: 400 });
-              }
-              for (let i = 0; i < 12; i++) {
-                entities.push({ kind: "coin",
-                  x: other.x + other.w/2 + (Math.random()-0.5) * 60,
-                  y: other.y + Math.random() * 30, r: 12,
-                  t: Math.random()*6.28, alive: true });
-              }
-              if (goal) goal.locked = false;
-            }
+            damageBoss(other, 1);
             break;
           }
         }
@@ -1705,29 +1767,9 @@ function updateEntities(dt) {
         // Fireball damages boss
         if (other.kind === "boss" && other.alive && other.invuln <= 0) {
           if (rectsOverlap(entityAABB(e), entityAABB(other))) {
-            other.hp -= 1;
-            other.invuln = 0.5;
             e.alive = false;
             spawnParticles(e.x, e.y, 16, { color: "#ff4400", life: 0.5, speed: 220, vy: -60 });
-            shake = 0.15;
-            if (other.hp <= 0) {
-              other.alive = false;
-              shake = 0.6;
-              for (let i = 0; i < 60; i++) {
-                const a = Math.random() * Math.PI * 2, s = 200 + Math.random() * 300;
-                particles.push({ x: other.x + other.w/2, y: other.y + other.h/2,
-                  vx: Math.cos(a)*s, vy: Math.sin(a)*s - 80,
-                  life: 1.2, maxLife: 1.2, color: i%2 ? "#ffd45a" : "#ff5d8f",
-                  r: 4, gravity: 400 });
-              }
-              for (let i = 0; i < 12; i++) {
-                entities.push({ kind: "coin",
-                  x: other.x + other.w/2 + (Math.random()-0.5) * 60,
-                  y: other.y + Math.random() * 30, r: 12,
-                  t: Math.random()*6.28, alive: true });
-              }
-              if (goal) goal.locked = false;
-            }
+            damageBoss(other, 1);
             break;
           }
         }
@@ -2872,7 +2914,7 @@ function drawEntities() {
     } else if (e.kind === "skeleton" && e.alive) {
       drawSkeleton(x, y, e);
     } else if (e.kind === "arrow" && e.alive) {
-      drawArrow(x, y, e);
+      if (e.fire) drawBossFireball(x, y, e); else drawArrow(x, y, e);
     } else if (e.kind === "rattata" && e.alive) {
       drawRattata(x, y, e);
     } else if (e.kind === "zubat" && e.alive) {
@@ -3313,6 +3355,26 @@ function drawSkeleton(x, y, e) {
   ctx.stroke();
 }
 
+function drawBossFireball(x, y, e) {
+  const cx = x + e.w / 2, cy = y + e.h / 2;
+  const col = e.color || "#ff7a2a";
+  const flick = 1 + Math.sin(timeAccum * 22 + e.x * 0.05) * 0.12;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const glow = ctx.createRadialGradient(cx, cy, 1, cx, cy, 22 * flick);
+  glow.addColorStop(0, "rgba(255,255,255,0.95)");
+  glow.addColorStop(0.35, col);
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(cx, cy, 22 * flick, 0, 6.283); ctx.fill();
+  ctx.fillStyle = "#fff6d0";
+  ctx.beginPath(); ctx.arc(cx, cy, 5.5 * flick, 0, 6.283); ctx.fill();
+  ctx.restore();
+  if (Math.random() < 0.5) {
+    spawnParticles(cx, cy, 1, { color: col, life: 0.3, speed: 40, vy: -20, r: 2.5, gravity: 80 });
+  }
+}
+
 function drawArrow(x, y, e) {
   const angle = Math.atan2(e.vy, e.vx);
   ctx.save();
@@ -3499,176 +3561,301 @@ function drawFlyer(x, y, e) {
 }
 
 function drawBoss(x, y, e) {
-  const cx = x + e.w/2, cy = y + e.h/2;
+  const cx = x + e.w / 2, cy = y + e.h / 2;
   const flash = e.invuln > 0 && Math.floor(e.invuln * 20) % 2 === 0;
+  const enraged = e.phase === "enrage";
   ctx.save();
-  if (flash) ctx.globalAlpha = 0.5;
+  if (flash) ctx.globalAlpha = 0.55;
+
+  // Heat haze while enraged
+  if (enraged) {
+    const halo = ctx.createRadialGradient(cx, cy, 20, cx, cy, e.w * 0.8);
+    halo.addColorStop(0, e.bossType === "ender_dragon" ? "rgba(195,132,238,0.45)" : "rgba(255,122,42,0.45)");
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = halo;
+    ctx.fillRect(x - e.w * 0.5, y - e.h * 0.5, e.w * 2, e.h * 2);
+  }
+
   if (e.bossType === "spider_queen") {
-    // Big red pulsing body with a crown, 6 legs, angry face
-    const pulse = 1 + Math.sin(e.t * 4) * 0.05;
-    const bx = cx, by = cy + 6;
-    // Legs first (behind body)
-    ctx.strokeStyle = "#5a0a1a";
-    ctx.lineWidth = 5;
-    for (let i = 0; i < 6; i++) {
-      const side = i < 3 ? -1 : 1;
-      const idx = i % 3;
-      const swing = Math.sin(e.t * 4 + i) * 8;
-      const ax = bx + side * (18 + idx * 8);
-      const ay = by + 6;
-      const dx = side * (30 + idx * 10) + swing;
-      const dy = 30 + Math.abs(swing);
+    // ═══ COLOSSAL QUEEN — 20 limbs, crowned, fireball slinger ═══
+    const bx = cx, by = cy + e.h * 0.08;
+    const R  = e.w * 0.30;
+
+    // 20 limbs radiating from the body, alternating stride
+    for (let i = 0; i < 20; i++) {
+      const side = i < 10 ? -1 : 1;
+      const idx  = i % 10;
+      const t    = idx / 9;
+      const ang  = (-0.85 + t * 1.7) * side;
+      const swing = Math.sin(e.t * 5 + i * 0.7) * 16;
+      const len  = R * (1.25 + 0.55 * Math.sin(t * Math.PI));
+      const hipX = bx + side * R * 0.55, hipY = by - R * 0.15 + t * R * 0.5;
+      const kneeX = hipX + Math.sin(ang) * len * 0.6 * side + swing * 0.5;
+      const kneeY = hipY + Math.cos(ang) * len * 0.45;
+      const footX = hipX + Math.sin(ang) * len * side + swing;
+      const footY = hipY + Math.cos(ang) * len * 0.95 + Math.abs(swing) * 0.5;
+      ctx.strokeStyle = i % 2 ? "#5a0a1a" : "#7a0f24";
+      ctx.lineWidth = Math.max(3, R * 0.10);
+      ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(bx + side * 18, by);
-      ctx.quadraticCurveTo(ax, ay, bx + side * (30 + idx * 12) + swing, by + 40);
+      ctx.moveTo(hipX, hipY);
+      ctx.quadraticCurveTo(kneeX, kneeY, footX, footY);
       ctx.stroke();
+      // clawed tip
+      ctx.fillStyle = "#2e0510";
+      ctx.beginPath(); ctx.arc(footX, footY, R * 0.055, 0, 6.283); ctx.fill();
     }
-    // Body — big red gradient sphere
-    const bg = ctx.createRadialGradient(bx - 10, by - 10, 4, bx, by, 44);
-    bg.addColorStop(0, "#ff8aa6");
-    bg.addColorStop(0.55, "#e63946");
-    bg.addColorStop(1, "#7a0a1a");
-    ctx.fillStyle = bg;
+
+    // Abdomen
+    const abg = ctx.createRadialGradient(bx - R * 0.3, by - R * 0.35, R * 0.1, bx, by, R * 1.25);
+    abg.addColorStop(0, enraged ? "#ffb0b8" : "#ff8aa6");
+    abg.addColorStop(0.55, enraged ? "#ff3040" : "#e63946");
+    abg.addColorStop(1, "#5a0a16");
+    ctx.fillStyle = abg;
     ctx.beginPath();
-    ctx.ellipse(bx, by, 40 * pulse, 32 * pulse, 0, 0, 6.283);
+    ctx.ellipse(bx, by, R * 1.15, R * 0.92, 0, 0, 6.283);
     ctx.fill();
-    // Crown!
+
+    // Glowing fire sacs that pulse before a volley
+    const charge = e.phase === "volley" ? (0.5 + Math.sin(e.t * 18) * 0.5) : 0.22;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + e.t * 0.4;
+      ctx.fillStyle = `rgba(255,150,40,${0.25 + charge * 0.6})`;
+      ctx.beginPath();
+      ctx.arc(bx + Math.cos(a) * R * 0.62, by + Math.sin(a) * R * 0.5, R * 0.14, 0, 6.283);
+      ctx.fill();
+    }
+
+    // Crown
     ctx.fillStyle = "#ffd45a";
+    const cwid = R * 0.95, ctop = by - R * 1.02;
     ctx.beginPath();
-    ctx.moveTo(bx - 20, by - 30);
-    ctx.lineTo(bx - 14, by - 44);
-    ctx.lineTo(bx - 8, by - 32);
-    ctx.lineTo(bx, by - 46);
-    ctx.lineTo(bx + 8, by - 32);
-    ctx.lineTo(bx + 14, by - 44);
-    ctx.lineTo(bx + 20, by - 30);
+    ctx.moveTo(bx - cwid, ctop);
+    for (let k = 0; k < 5; k++) {
+      const px = bx - cwid + (k * 2 + 1) * (cwid / 5);
+      ctx.lineTo(px, ctop - R * (k % 2 ? 0.5 : 0.34));
+      ctx.lineTo(px + cwid / 5, ctop);
+    }
     ctx.closePath(); ctx.fill();
     ctx.fillStyle = "#c98a18";
-    ctx.fillRect(bx - 20, by - 28, 40, 4);
-    // Crown jewels
-    ctx.fillStyle = "#ff5d8f";
-    ctx.beginPath(); ctx.arc(bx, by - 40, 2.5, 0, 6.283); ctx.fill();
+    ctx.fillRect(bx - cwid, ctop, cwid * 2, R * 0.12);
     ctx.fillStyle = "#4cc9f0";
-    ctx.beginPath(); ctx.arc(bx - 14, by - 40, 2, 0, 6.283); ctx.fill();
-    ctx.beginPath(); ctx.arc(bx + 14, by - 40, 2, 0, 6.283); ctx.fill();
-    // Angry eyes (4 of them)
-    ctx.fillStyle = "#fff";
-    for (const [dx, dy, r] of [[-14,-8,4.5],[-4,-10,3.5],[4,-10,3.5],[14,-8,4.5]]) {
-      ctx.beginPath(); ctx.arc(bx + dx, by + dy, r, 0, 6.283); ctx.fill();
-    }
-    ctx.fillStyle = "#0a0a0a";
-    for (const [dx, dy, r] of [[-14,-8,2.5],[-4,-10,2],[4,-10,2],[14,-8,2.5]]) {
-      ctx.beginPath(); ctx.arc(bx + dx + e.facing, by + dy, r, 0, 6.283); ctx.fill();
-    }
-    // Angry brows
-    ctx.strokeStyle = "#3a0a14";
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(bx - 22, by - 16); ctx.lineTo(bx - 6, by - 12); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(bx + 6, by - 12); ctx.lineTo(bx + 22, by - 16); ctx.stroke();
-    // Fangs
-    ctx.strokeStyle = "#3a0a14";
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(bx, by + 8, 12, 0.2, Math.PI - 0.2); ctx.stroke();
-    ctx.fillStyle = "#fff";
-    for (let i = 0; i < 4; i++) {
-      const sx = bx - 8 + i * 6;
+    ctx.beginPath(); ctx.arc(bx, ctop - R * 0.42, R * 0.09, 0, 6.283); ctx.fill();
+
+    // Eight eyes, glowing when enraged
+    const eyes = [[-0.55,-0.30,0.13],[-0.28,-0.40,0.10],[0.28,-0.40,0.10],[0.55,-0.30,0.13],
+                  [-0.40,-0.10,0.08],[-0.14,-0.16,0.07],[0.14,-0.16,0.07],[0.40,-0.10,0.08]];
+    for (const [dx, dy, r] of eyes) {
+      ctx.fillStyle = enraged ? "#ffd24a" : "#ffffff";
+      ctx.beginPath(); ctx.arc(bx + dx * R, by + dy * R, r * R, 0, 6.283); ctx.fill();
+      ctx.fillStyle = "#12060a";
       ctx.beginPath();
-      ctx.moveTo(sx, by + 10);
-      ctx.lineTo(sx + 2, by + 18);
-      ctx.lineTo(sx + 4, by + 10);
+      ctx.arc(bx + dx * R + e.facing * r * R * 0.32, by + dy * R, r * R * 0.55, 0, 6.283);
       ctx.fill();
     }
-  } else if (e.bossType === "ender_dragon") {
-    // Big purple dragon head with wings + horns
-    const bx = cx, by = cy + 8;
-    const wingFlap = Math.sin(e.t * 6) * 10;
-    // Wings (behind)
-    ctx.fillStyle = "#3a1f5a";
+
+    // Brows and fanged maw
+    ctx.strokeStyle = "#3a0a14";
+    ctx.lineWidth = R * 0.08;
     ctx.beginPath();
-    ctx.moveTo(bx - 20, by - 10);
-    ctx.quadraticCurveTo(bx - 60, by - 30 - wingFlap, bx - 50, by + 10);
-    ctx.quadraticCurveTo(bx - 30, by, bx - 20, by);
-    ctx.closePath(); ctx.fill();
+    ctx.moveTo(bx - R * 0.72, by - R * 0.52); ctx.lineTo(bx - R * 0.20, by - R * 0.36);
+    ctx.moveTo(bx + R * 0.20, by - R * 0.36); ctx.lineTo(bx + R * 0.72, by - R * 0.52);
+    ctx.stroke();
+    ctx.fillStyle = "#3a0a14";
     ctx.beginPath();
-    ctx.moveTo(bx + 20, by - 10);
-    ctx.quadraticCurveTo(bx + 60, by - 30 - wingFlap, bx + 50, by + 10);
-    ctx.quadraticCurveTo(bx + 30, by, bx + 20, by);
-    ctx.closePath(); ctx.fill();
-    // Wing veins
-    ctx.strokeStyle = "#7a4bce";
-    ctx.lineWidth = 1.2;
-    for (let i = 0; i < 3; i++) {
+    ctx.ellipse(bx, by + R * 0.42, R * 0.42, R * 0.22, 0, 0, 6.283);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    for (let i = 0; i < 7; i++) {
+      const tx = bx - R * 0.36 + i * (R * 0.12);
       ctx.beginPath();
-      ctx.moveTo(bx - 20, by);
-      ctx.lineTo(bx - 55 + i*4, by - 15 - wingFlap + i*8);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(bx + 20, by);
-      ctx.lineTo(bx + 55 - i*4, by - 15 - wingFlap + i*8);
-      ctx.stroke();
+      ctx.moveTo(tx, by + R * 0.30);
+      ctx.lineTo(tx + R * 0.04, by + R * 0.56);
+      ctx.lineTo(tx + R * 0.09, by + R * 0.30);
+      ctx.fill();
     }
-    // Body — pixelated black cube (Minecraft style)
-    ctx.fillStyle = "#1a1a2a";
-    ctx.fillRect(bx - 32, by - 20, 64, 46);
-    ctx.fillStyle = "#2a2a4a";
-    // Pixel highlights
-    for (let px = 0; px < 8; px++) {
-      for (let py = 0; py < 6; py++) {
-        if ((px + py) % 2 === 0) {
-          ctx.fillRect(bx - 32 + px * 8, by - 20 + py * 8, 8, 8);
-        }
+
+  } else {
+    // ═══ COLOSSAL FLYING T-REX DRAGON ═══
+    const flap = Math.sin(e.t * 4.5) * (e.phase === "swoop" ? 26 : 18);
+    const S = e.w / 340;
+    const bx = cx, by = cy;
+    const dark = enraged ? "#3a1a52" : "#20182e";
+    const mid  = enraged ? "#5a2a80" : "#312545";
+
+    // Wings behind the body
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = mid;
+      ctx.beginPath();
+      ctx.moveTo(bx + side * 40 * S, by - 10 * S);
+      ctx.quadraticCurveTo(bx + side * 175 * S, by - 105 * S - flap * S,
+                           bx + side * 205 * S, by + 20 * S - flap * 0.4 * S);
+      ctx.quadraticCurveTo(bx + side * 140 * S, by + 26 * S,
+                           bx + side * 40 * S, by + 24 * S);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = enraged ? "#c384ee" : "#6a4a9a";
+      ctx.lineWidth = 2.5 * S;
+      for (let k = 0; k < 4; k++) {
+        ctx.beginPath();
+        ctx.moveTo(bx + side * 42 * S, by + 6 * S);
+        ctx.lineTo(bx + side * (100 + k * 34) * S, by + (-70 + k * 32) * S - flap * S);
+        ctx.stroke();
       }
     }
-    // Head
-    ctx.fillStyle = "#0a0a1a";
-    ctx.fillRect(bx - 22, by - 34, 44, 22);
-    // Horns
-    ctx.fillStyle = "#4a4a6a";
+
+    // Tail
+    ctx.strokeStyle = dark;
+    ctx.lineWidth = 26 * S;
+    ctx.lineCap = "round";
+    const tailSwing = Math.sin(e.t * 3) * 22 * S;
     ctx.beginPath();
-    ctx.moveTo(bx - 22, by - 32); ctx.lineTo(bx - 30, by - 46); ctx.lineTo(bx - 16, by - 32); ctx.fill();
+    ctx.moveTo(bx - e.facing * 40 * S, by + 18 * S);
+    ctx.quadraticCurveTo(bx - e.facing * 130 * S, by + 34 * S + tailSwing,
+                         bx - e.facing * 190 * S, by - 6 * S + tailSwing);
+    ctx.stroke();
+
+    // Body
+    const bgr = ctx.createLinearGradient(bx, by - 60 * S, bx, by + 70 * S);
+    bgr.addColorStop(0, mid);
+    bgr.addColorStop(1, dark);
+    ctx.fillStyle = bgr;
     ctx.beginPath();
-    ctx.moveTo(bx + 22, by - 32); ctx.lineTo(bx + 30, by - 46); ctx.lineTo(bx + 16, by - 32); ctx.fill();
-    // Purple glowing eyes
-    ctx.fillStyle = "#c384ee";
-    ctx.fillRect(bx - 14, by - 26, 8, 4);
-    ctx.fillRect(bx + 6, by - 26, 8, 4);
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(bx - 12, by - 25, 2, 2);
-    ctx.fillRect(bx + 8, by - 25, 2, 2);
-    // Fanged mouth
-    ctx.fillStyle = "#6a1a3a";
-    ctx.fillRect(bx - 12, by - 16, 24, 4);
-    ctx.fillStyle = "#fff";
-    for (let i = 0; i < 5; i++) ctx.fillRect(bx - 11 + i * 5, by - 16, 2, 3);
-    // Ender particle glow around
-    for (let i = 0; i < 6; i++) {
-      const a = e.t * 0.5 + i * (Math.PI / 3);
-      const r = 60 + Math.sin(e.t + i) * 6;
-      ctx.fillStyle = "rgba(195,132,238,0.5)";
+    ctx.ellipse(bx, by + 14 * S, 84 * S, 58 * S, 0, 0, 6.283);
+    ctx.fill();
+
+    // Back spines
+    ctx.fillStyle = enraged ? "#ff5d8f" : "#7a5aa8";
+    for (let k = 0; k < 7; k++) {
+      const sx = bx - e.facing * (60 - k * 20) * S;
+      const sh = (16 + Math.sin(k) * 7) * S;
       ctx.beginPath();
-      ctx.arc(bx + Math.cos(a) * r, by + Math.sin(a) * r * 0.5, 3, 0, 6.283);
+      ctx.moveTo(sx - 8 * S, by - 40 * S);
+      ctx.lineTo(sx, by - 40 * S - sh);
+      ctx.lineTo(sx + 8 * S, by - 40 * S);
       ctx.fill();
+    }
+
+    // Powerful hind legs
+    ctx.fillStyle = dark;
+    const stride = Math.sin(e.t * 4) * 10 * S;
+    for (const off of [-26, 26]) {
+      ctx.beginPath();
+      ctx.ellipse(bx + off * S, by + 62 * S + (off > 0 ? stride : -stride), 22 * S, 34 * S, 0, 0, 6.283);
+      ctx.fill();
+      ctx.fillStyle = "#efe6d0";
+      for (let c = 0; c < 3; c++) {
+        ctx.beginPath();
+        ctx.moveTo(bx + (off - 14 + c * 12) * S, by + 92 * S + (off > 0 ? stride : -stride));
+        ctx.lineTo(bx + (off - 9 + c * 12) * S, by + 106 * S + (off > 0 ? stride : -stride));
+        ctx.lineTo(bx + (off - 4 + c * 12) * S, by + 92 * S + (off > 0 ? stride : -stride));
+        ctx.fill();
+      }
+      ctx.fillStyle = dark;
+    }
+
+    // Tiny T-rex arms
+    ctx.fillStyle = mid;
+    for (const oy of [-6, 12]) {
+      ctx.beginPath();
+      ctx.ellipse(bx + e.facing * 62 * S, by + oy * S, 16 * S, 8 * S, e.facing * 0.4, 0, 6.283);
+      ctx.fill();
+      ctx.fillStyle = "#efe6d0";
+      ctx.beginPath();
+      ctx.arc(bx + e.facing * 78 * S, by + (oy + 4) * S, 4 * S, 0, 6.283);
+      ctx.fill();
+      ctx.fillStyle = mid;
+    }
+
+    // Massive head on a thick neck
+    const hx = bx + e.facing * 118 * S, hy = by - 48 * S;
+    ctx.strokeStyle = dark;
+    ctx.lineWidth = 40 * S;
+    ctx.beginPath();
+    ctx.moveTo(bx + e.facing * 46 * S, by - 16 * S);
+    ctx.lineTo(hx - e.facing * 14 * S, hy + 12 * S);
+    ctx.stroke();
+    ctx.fillStyle = dark;
+    ctx.beginPath();
+    ctx.ellipse(hx, hy, 56 * S, 34 * S, e.facing * 0.14, 0, 6.283);
+    ctx.fill();
+    // Snout
+    ctx.beginPath();
+    ctx.ellipse(hx + e.facing * 44 * S, hy + 8 * S, 34 * S, 20 * S, 0, 0, 6.283);
+    ctx.fill();
+    // Horns
+    ctx.fillStyle = "#8a7ab0";
+    for (const hoff of [-22, 6]) {
+      ctx.beginPath();
+      ctx.moveTo(hx + hoff * S, hy - 26 * S);
+      ctx.lineTo(hx + (hoff - e.facing * 16) * S, hy - 66 * S);
+      ctx.lineTo(hx + (hoff + 16) * S, hy - 26 * S);
+      ctx.fill();
+    }
+    // Jaws, opening as it breathes
+    const gape = e.phase === "breathe" ? 20 * S : 8 * S;
+    ctx.fillStyle = "#4a0a1e";
+    ctx.beginPath();
+    ctx.moveTo(hx + e.facing * 14 * S, hy + 14 * S);
+    ctx.lineTo(hx + e.facing * 84 * S, hy + 14 * S + gape);
+    ctx.lineTo(hx + e.facing * 84 * S, hy + 26 * S + gape);
+    ctx.lineTo(hx + e.facing * 14 * S, hy + 30 * S);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#fff";
+    for (let k = 0; k < 6; k++) {
+      const tx = hx + e.facing * (22 + k * 11) * S;
+      ctx.beginPath();
+      ctx.moveTo(tx, hy + 14 * S + gape * (k / 6));
+      ctx.lineTo(tx + e.facing * 4 * S, hy + 28 * S + gape * (k / 6));
+      ctx.lineTo(tx + e.facing * 9 * S, hy + 14 * S + gape * (k / 6));
+      ctx.fill();
+    }
+    // Glowing eye
+    ctx.fillStyle = enraged ? "#ff4a4a" : "#c384ee";
+    ctx.beginPath();
+    ctx.ellipse(hx + e.facing * 16 * S, hy - 6 * S, 12 * S, 8 * S, 0, 0, 6.283);
+    ctx.fill();
+    ctx.fillStyle = "#12060a";
+    ctx.beginPath();
+    ctx.ellipse(hx + e.facing * 19 * S, hy - 6 * S, 4 * S, 7 * S, 0, 0, 6.283);
+    ctx.fill();
+    // Glow building in the throat before a fire breath
+    if (e.phase === "breathe") {
+      const g2 = ctx.createRadialGradient(hx + e.facing * 80 * S, hy + 18 * S, 2,
+                                          hx + e.facing * 80 * S, hy + 18 * S, 46 * S);
+      g2.addColorStop(0, "rgba(255,255,255,0.95)");
+      g2.addColorStop(0.4, "rgba(195,132,238,0.7)");
+      g2.addColorStop(1, "rgba(195,132,238,0)");
+      ctx.fillStyle = g2;
+      ctx.beginPath(); ctx.arc(hx + e.facing * 80 * S, hy + 18 * S, 46 * S, 0, 6.283); ctx.fill();
     }
   }
   ctx.restore();
-  // Boss HP bar above
-  const hpBarW = 100, hpBarH = 8;
-  const bhx = x + e.w/2 - hpBarW/2;
-  const bhy = y - 22;
-  ctx.fillStyle = "rgba(0,0,0,0.6)";
-  ctx.fillRect(bhx - 2, bhy - 2, hpBarW + 4, hpBarH + 4);
+
+  // ── Health bar with one pip per remaining life ──
+  const bw = Math.min(300, e.w * 0.85), bh = 12;
+  const bhx = x + e.w / 2 - bw / 2, bhy = y - 40;
+  ctx.fillStyle = "rgba(0,0,0,0.65)";
+  ctx.fillRect(bhx - 3, bhy - 3, bw + 6, bh + 6);
   ctx.fillStyle = "#2a1230";
-  ctx.fillRect(bhx, bhy, hpBarW, hpBarH);
-  const hpPct = Math.max(0, e.hp / e.maxHp);
-  const hpg = ctx.createLinearGradient(bhx, 0, bhx + hpBarW, 0);
-  hpg.addColorStop(0, "#ff5d8f");
-  hpg.addColorStop(1, "#ffd45a");
-  ctx.fillStyle = hpg;
-  ctx.fillRect(bhx, bhy, hpBarW * hpPct, hpBarH);
+  ctx.fillRect(bhx, bhy, bw, bh);
+  const pct = Math.max(0, e.hp / e.maxHp);
+  const hg = ctx.createLinearGradient(bhx, 0, bhx + bw, 0);
+  hg.addColorStop(0, "#ff3b6e");
+  hg.addColorStop(1, "#ffd45a");
+  ctx.fillStyle = hg;
+  ctx.fillRect(bhx, bhy, bw * pct, bh);
+  // Life pips
+  for (let i = 0; i < e.maxLives; i++) {
+    const px = bhx + 7 + i * 18;
+    ctx.fillStyle = i < e.lives ? "#ff5d8f" : "rgba(255,255,255,0.22)";
+    ctx.beginPath(); ctx.arc(px, bhy - 12, 6, 0, 6.283); ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1.5; ctx.stroke();
+  }
   ctx.fillStyle = "#fff";
-  ctx.font = "bold 10px Trebuchet MS, sans-serif";
+  ctx.font = "bold 12px Trebuchet MS, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("BOSS · " + e.hp + "/" + e.maxHp, x + e.w/2, bhy - 4);
+  ctx.fillText((e.bossType === "ender_dragon" ? "ENDER DRAGON" : "SPIDER QUEEN")
+               + "  ·  " + e.lives + " LIVES", x + e.w / 2, bhy - 24);
   ctx.textAlign = "start";
 }
 
